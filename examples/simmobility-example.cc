@@ -15,8 +15,6 @@
 
 using namespace ns3;
 
-//Define a log component for our example.
-NS_LOG_COMPONENT_DEFINE ("SimMobilityExample");
 
 //Command line parameters.
 std::string application = "stk";
@@ -43,7 +41,7 @@ void parse_command_line(int argc, char* argv[])
 int main(int argc, char* argv[])
 {
 	parse_command_line(argc, argv);	
-	NS_LOG_DEBUG( "Application: " <<application << "; host: " <<host <<"; port: " <<port);
+	std::cout << "sm4ns3 starterd; application: " <<application << "; host: " <<host <<"; port: " <<port <<"\n";
 	
 	// disable fragmentation for frames below 2200 bytes
 	Config::SetDefault ("ns3::WifiRemoteStationManager::FragmentationThreshold", StringValue ("2200"));
@@ -54,37 +52,26 @@ int main(int argc, char* argv[])
 	// Fix non-unicast data rate to be the same as that of unicast
 	Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue ("DsssRate1Mbps"));
 	
-	sim_mob::BaseFactory<sim_mob::Registration*> & appRegFactory = sim_mob::Registration::getFactory();
-	sim_mob::BaseFactory<sim_mob::Agent*> & agentFactory = sim_mob::Agent::getFactory();
+//	sim_mob::BaseFactory<sim_mob::Registration*> & appRegFactory = sim_mob::Registration::getFactory();
+//	sim_mob::BaseFactory<sim_mob::Agent*> & agentFactory = sim_mob::Agent::getFactory();
 
-	NS_LOG_DEBUG( "declaring a broker");
 	sim_mob::Broker broker(host, port);
-	NS_LOG_DEBUG( "declaring a broker: done" );
 
-	NS_LOG_DEBUG( "Register  Registration" );
-	appRegFactory.Register("Default", new sim_mob::Registration(&broker,host, port));
-	NS_LOG_DEBUG( "Register  Registration: Done" );
+//	appRegFactory.Register("Default", new sim_mob::Registration(&broker,host, port));
+//	appRegFactory.Register("stk", new sim_mob::WFD_Registration(&broker,host, port));
 
-	NS_LOG_DEBUG( "Register  WFD_Registration" );
-	appRegFactory.Register("stk", new sim_mob::WFD_Registration(&broker,host, port));
-	NS_LOG_DEBUG( "Register  WFD_Registration: Done" );
-
-	NS_LOG_DEBUG( "Register  Agent" );
-	agentFactory.Register("Default", new sim_mob::Agent());
-	NS_LOG_DEBUG( "Register  Agent Done" );
-
-	NS_LOG_DEBUG( "Register  WFD_Agent" );
-	agentFactory.Register("stk", new sim_mob::WFD_Agent());
-	NS_LOG_DEBUG( "Register  WFD_Agent Done" );
+//	agentFactory.Register("Default", new sim_mob::Agent());
+//	agentFactory.Register("stk", new sim_mob::WFD_Agent());
 
 	if(!broker.start(application)) {
-		NS_LOG_ERROR( "Broker Start Failed" );
+		std::cout <<"ERROR: Broker Start Failed";
+		return 1;
 	}
 
 	//Run the Simulator, and cleanup when it's done.
 	Simulator::Run();
 	Simulator::Destroy ();
-	NS_LOG_DEBUG("Simulation Destroyed");
+	std::cout <<"sm4ns3 - Simulation Destroyed\n";
 	return 0;
 }
 

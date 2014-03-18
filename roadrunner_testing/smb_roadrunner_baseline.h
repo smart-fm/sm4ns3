@@ -1,8 +1,14 @@
-#include "smb_broker.h"
+//Copyright (c) 2014 Singapore-MIT Alliance for Research and Technology
+//Licensed under the terms of the MIT License, as described in the file:
+//   license.txt   (http://opensource.org/licenses/MIT)
+
+#pragma once 
 
 #include <sstream>
 #include <string>
 #include <fstream>
+
+#include "smb_broker.h"
 
 namespace sim_mob {
 
@@ -25,4 +31,5 @@ public:
 	virtual void pause();
 };
 
-}//namespace
+}
+

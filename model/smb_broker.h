@@ -11,7 +11,8 @@
 #include <iostream>
 
 #include "ns3/system-mutex.h"
-#include "ns3/system-condition.h"
+#include "ns3/system-thread.h"
+//#include "ns3/system-condition.h"
 
 #include <boost/asio/io_service.hpp>
 #include <jsoncpp/json/json.h>
@@ -20,47 +21,56 @@
 
 namespace sim_mob {
 
-class Broker {
+///Contains various callback functions, allowing other classes to interact with Brokers without requiring the entire object.
+class BrokerBase {
 public:
-	Broker(std::string simmobility_address = "localhost",std::string simmobility_port = "6745");
+	virtual void onMessageReceived(const std::string& message) = 0;
+};
+
+
+class Broker : public BrokerBase{
+public:
+	Broker(const std::string& simmobility_address="localhost", const std::string& simmobility_port="6745");
 	virtual ~Broker();
+
+	//Overriding BrokerBase
+	virtual void onMessageReceived(const std::string& message);
 
 private:
 	//Connection settings; host/port
 	std::string simmob_host;
 	std::string simmob_port;
 
-
-	boost::function<void(std::string)> m_messageReceiveCallback;
-	sim_mob::Connection m_cnn;
+	sim_mob::Connection conn;
 
 
 	ns3::SystemMutex mutex_pause;
 
-	ns3::SystemCondition cond_sim;
+//	ns3::SystemCondition cond_sim;
 
 	bool m_pause;
 	sim_mob::MessageQueue<msg_ptr> m_incoming;
 	sim_mob::MessageQueue<std::string> m_incoming_conf;
 	sim_mob::MessageQueue<Json::Value> m_outgoing;
 
+	sim_mob::MessageFactory msgFactory;
 
-	//TODO: Clean this up later.
-	boost::shared_ptr<sim_mob::MessageFactory<std::string&, msg_ptr, msg_data_t> > msgFactorySys;
-	boost::shared_ptr<sim_mob::MessageFactory<std::string&, msg_ptr, msg_data_t> > msgFactoryApp;
+	//I/O needs to go in its own thread.
+	ns3::SystemThread iorun_thread;
+
+	void run_io_service();
 public:
 	static unsigned int m_global_tick;
 	static unsigned int global_pckt_cnt;
-	boost::asio::io_service m_io_service;
+	boost::asio::io_service io_service;
 	virtual bool start(std::string application = "stk");
-	void insertOutgoing(Json::Value & value);
+	void insertOutgoing(const Json::Value & value);
 	virtual void pause();
 	bool processInitMessages();
 	void sendClientDone();
 	void processIncoming();
 	void sendOutgoing();
-	bool parsePacket(std::string &input);
-	void messageReceiveCallback(std::string message);
+	bool parsePacket(const std::string &input);
 	void setSimmobilityConnectionPoint(std::string,std::string);
 
 	sim_mob::Connection & getConnection();

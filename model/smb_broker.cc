@@ -5,8 +5,7 @@
 #include "smb_broker.h"
 #include "smb_serializer.h"
 #include "smb_registration.h"
-#include "smb_system_factory.h"
-#include "smb_rr_factory.h"
+#include "smb_message_handler_base.h"
 
 #include "ns3/config.h"
 #include "ns3/string.h"
@@ -14,12 +13,10 @@
 #include "ns3/nstime.h"
 #include "ns3/log.h"
 
-
 #include <time.h>
-#include <boost/assign/list_of.hpp>
 
 
-
+using std::string;
 using namespace ns3;
 
 namespace sim_mob {
@@ -27,56 +24,84 @@ namespace sim_mob {
 unsigned int Broker::m_global_tick;
 unsigned int Broker::global_pckt_cnt;
 
-Broker::Broker(std::string simmobility_address, std::string simmobility_port) :
+NS_LOG_COMPONENT_DEFINE("SimMobility");
+
+Broker::Broker(const string& simmobility_address, const string& simmobility_port) :
 	simmob_host(simmobility_address),
 	simmob_port(simmobility_port),
-	m_messageReceiveCallback(boost::function<void(std::string)>(boost::bind(&Broker::messageReceiveCallback,this, _1))),m_cnn(m_io_service,m_messageReceiveCallback)
+	conn(io_service, this),
+	iorun_thread(ns3::SystemThread(ns3::MakeNullCallback<void>()))
 {
-//	NS_LOG_UNCOND( "In Broker::Broker()" );
-	msgFactorySys.reset(new sim_mob::SYS_MSG_Factory());
-	msgFactoryApp.reset(new sim_mob::roadrunner::RR_Factory());
-
 	m_pause = true;
 	global_pckt_cnt = 0;
 }
 
-Broker::~Broker() {
-	m_io_service.stop();
+Broker::~Broker() 
+{
+	io_service.stop();
+	iorun_thread.Join();
 }
 
-bool Broker::start(std::string application) {
+
+void Broker::onMessageReceived(const string& input) 
+{
+	//What to do with the message now?
+	//if you are in the initial stage of being authenticated or getting the
+	// pre-simulation configs, you have to act immediately
+	// otherwise(if simulation is started) post the messages into the main incoming queue
+	CriticalSection lock(mutex_pause);
+
+	//Extract and post message
+	if(parsePacket(input)) {
+		m_pause = false;
+//		cond_sim.Signal();
+	}
+}
+
+
+
+bool Broker::start(std::string application) 
+{
 	m_global_tick = 0;
-//	//debug commenting
-	//do the registration
-	//sorry a little rework of the factory
-	bool res;
-	const sim_mob::Registration *registration_ = sim_mob::Registration::getFactory().getPrototype(application,res);
-	sim_mob::Registration *registration = registration_->clone();
+	//bool res;
+
+	//TODO: Clean this up further
+	sim_mob::Registration* registration = NULL;
+	if (application=="Default") {
+		registration = new sim_mob::Registration(this, simmob_host, simmob_port);
+	} else if (application=="stk") {
+		registration = new sim_mob::WFD_Registration(this, simmob_host, simmob_port);
+	} else {
+		throw std::runtime_error("Unknown application.");
+	}
 
 	if (!registration->start()) {
-		NS_LOG_UNCOND( "Registration Failed" );
+		NS_LOG_ERROR( "Registration Failed" );
 		return false;
 	}
 
-	if (!m_cnn.is_open()) {
-		NS_LOG_UNCOND( "Socket is not open" );
+	if (!conn.is_open()) {
+		NS_LOG_ERROR( "Socket is not open" );
+		return false;
 	}
 
-	NS_LOG_UNCOND( "starting async_read" );
+	NS_LOG_DEBUG( "starting async_read" );
 
 	//start the async operation
-	m_cnn.async_receive();
+	conn.async_receive();
 
-	if (!m_cnn.is_open()) {
-		NS_LOG_UNCOND( "Socket is not open" );
+	if (!conn.is_open()) {
+		NS_LOG_ERROR( "Socket is not open" );
+		return false;
 	}
 
 	//start a thread for io_service_run
 	//service_thread = SystemThread(MakeCallback (&Broker::run_io_service, this));
 	//service_thread.Start();
 
-	//NOTE: There's no reason whatsoever for this to be on its own thread. 
-	m_io_service.run();
+	//This needs to go in its own thread; perhaps there is a better way of calling it? (We don't really need async access).
+	iorun_thread = SystemThread(MakeCallback (&Broker::run_io_service, this));
+	iorun_thread.Start();
 
 
 //	processInitMessages(); //go to function's definition's to see why we call this method here!
@@ -96,42 +121,65 @@ bool Broker::start(std::string application) {
 }
 
 
-void Broker::insertOutgoing(Json::Value &value) {
+void Broker::run_io_service() 
+{
+	io_service.run();
+}
+
+
+void Broker::insertOutgoing(const Json::Value &value) 
+{
 	m_outgoing.post(value);
 }
 
-void Broker::pause() {
-	CriticalSection lock(mutex_pause);
-	NS_LOG_UNCOND( "pausing the simulation" );
-	while(m_pause) {
-		cond_sim.Wait();
-	}
-	m_pause = true;
+void Broker::pause() 
+{
+	timespec slTm;
+	slTm.tv_sec = 0;
+	slTm.tv_nsec = 100000; //0.1ms
 
-	NS_LOG_UNCOND( "Simulation UNpaused" );
-	processIncoming();
-	NS_LOG_UNCOND( "Broker::processIncoming() done" );
-	sendOutgoing();
-	NS_LOG_UNCOND( "Broker::sendOutgoing() done" );
-	m_cnn.send(JsonParser::makeClientDonePacket());	//due to nature of DES, this must be sync rather than async
-	NS_LOG_UNCOND( "Broker::send to simmobility done" );
-	Simulator::Schedule(MilliSeconds(100), &Broker::pause, this);
-	NS_LOG_UNCOND( "Next Tick (" << m_global_tick << ") Scheduling done" );
-	m_global_tick++;
+	//Switched to busy-waiting; Conditions are better, but I want to reduce boost dependencies (and ns3::SystemCondition is flawed).
+	for (;;) {
+		{
+		CriticalSection lock(mutex_pause);
+		if (!m_pause) {
+			//Time to act.
+			m_pause = true;
+	
+			NS_LOG_DEBUG( "Simulation UNpaused" );
+
+			processIncoming();
+			NS_LOG_DEBUG( "Broker::processIncoming() done" );
+
+			sendOutgoing();
+			NS_LOG_DEBUG( "Broker::sendOutgoing() done" );
+	
+			conn.send(JsonParser::makeClientDonePacket());	//due to nature of DES, this must be sync rather than async
+			NS_LOG_DEBUG("Broker::send to simmobility done" );
+
+			Simulator::Schedule(MilliSeconds(100), &Broker::pause, this);
+			NS_LOG_DEBUG("Next Tick (" << m_global_tick << ") Scheduling done" );
+			m_global_tick++;
+
+			break; //Done.
+		}
+		} //End critical section
+
+		//Else, sleep
+		nanosleep(&slTm, NULL);
+	}
 }
 
 
 
-void Broker::processIncoming() {
-	//just pop off the message queue and click handl ;)
+void Broker::processIncoming() 
+{
 	msg_ptr msg;
 	while (m_incoming.pop(msg)) {
-		hdlr_ptr handler = msg->supplyHandler();
+		const sim_mob::Handler* handler = msgFactory.getHandler(msg->getHeader().msg_type);
 		if (handler) {
 			handler->handle(msg, this);
-		}
-		else
-		{
+		} else {
 			NS_LOG_UNCOND( "no handler for [" << msg->getData()["MESSAGE_TYPE"].asString() << "]" );
 		}
 	}
@@ -151,44 +199,35 @@ void Broker::sendOutgoing() {
 	}
 	Json::Value header = JsonParser::createPacketHeader(i);
 	root["PACKET_HEADER"] = header;
-	m_cnn.send(Json::FastWriter().write(root));
+	conn.send(Json::FastWriter().write(root));
 }
 
 //parses the packet to extract messages,
 //then redirects the parsed messages based on their
 //type and category for further processing
 //return value will tell you whether notify or not
-bool Broker::parsePacket(std::string &input)
+bool Broker::parsePacket(const std::string &input)
 {
 	bool notify = false;
 	std::string type, data;
 	Json::Value root;
 	sim_mob::pckt_header packetHeader;
-	if(!sim_mob::JsonParser::parsePacketHeader(input, packetHeader, root))
-	{
+	if(!sim_mob::JsonParser::parsePacketHeader(input, packetHeader, root)) {
 		return false;
 	}
-	if(!sim_mob::JsonParser::getPacketMessages(input,root))
-	{
+	if(!sim_mob::JsonParser::getPacketMessages(input,root)) {
 		return false;
 	}
-//	NS_LOG_UNCOND( "ParsePacket::nof_messages = " << root.size() );
+
 	for (unsigned int index = 0; index < root.size(); index++) {
 		msg_header messageHeader;
-		msg_data_t & curr_json_msg = root[index];
+		const Json::Value& curr_json_msg = root[index];
 		if (!sim_mob::JsonParser::parseMessageHeader(curr_json_msg, messageHeader)) {
 			continue;
 		}
-//		NS_LOG_UNCOND( "ParsePacket::" << index << ": (" <<  messageHeader.msg_cat << ":" <<  messageHeader.msg_type << ")" );
 		msg_ptr msg = msg_ptr();
 
-		//TODO: Combine message categories, later.
-		bool success = false;
-		if (messageHeader.msg_cat == "SYS") {
-			success = msgFactorySys->createMessage(curr_json_msg,msg);
-		} else if (messageHeader.msg_cat == "APP") {
-			success = msgFactoryApp->createMessage(curr_json_msg,msg);
-		} else { throw std::runtime_error("Unknown message category."); }
+		bool success = msgFactory.createSingleMessage(curr_json_msg,msg);
 
 
 		if(success) {
@@ -199,36 +238,19 @@ bool Broker::parsePacket(std::string &input)
 				m_incoming.post(msg);
 			}
 		}
-	}		//for loop
+	}
 	return notify;
 }
 
-void Broker::messageReceiveCallback(std::string input) {
-//	what to do with the message now?
-	//if you are in the initial stage of
-	//being authenticated or getting the
-	//pre-simulation configs, you have to act immediately
-	//otherwise(if simulation is started)
-	//post the messages into the main incoming queue
-	CriticalSection lock(mutex_pause);
 
-	//extract and post message
-	if(parsePacket(input) == true) {
-		NS_LOG_UNCOND(  "notifying cond_sim");
-		m_pause = false;
-
-		cond_sim.Signal();
-	}
-}
-
-void Broker::setSimmobilityConnectionPoint(std::string simmobility_address,
-		std::string simmobility_port) {
+void Broker::setSimmobilityConnectionPoint(std::string simmobility_address, std::string simmobility_port) 
+{
 	simmob_host = simmobility_address;
 	simmob_port = simmobility_port;
 }
 
 sim_mob::Connection & Broker::getConnection(){
-	return m_cnn;
+	return conn;
 }
 
 } //namespace

@@ -3,30 +3,26 @@
 #include "smb_agent.h"
 #include "smb_broker.h"
 namespace sim_mob {
-MSG_Time::MSG_Time(msg_data_t data_): Message(data_)
+MSG_Time::MSG_Time(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
 {
-
 }
-MSG_Time::MSG_Time()
+
+/*MSG_Time::MSG_Time()
 {
-
-}
+}*/
 
 MSG_Time::~MSG_Time()
 {
-
 }
 
-/*sim_mob::comm::Message<msg_data_t> **/ msg_ptr  MSG_Time::clone(msg_data_t& data_) {
-	return msg_ptr (new MSG_Time(data_));
-}
 
-Handler * MSG_Time::newHandler()
+/*Handler * MSG_Time::newHandler()
 {
 	return new HDL_Time();
-}
+}*/
 
-void HDL_Time::handle(msg_ptr message_,Broker* broker){
+void HDL_Time::handle(msg_ptr message_,Broker* broker) const 
+{
 	//for now, just set a global tick counter in the broker
 
 }//handle()

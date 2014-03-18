@@ -1,31 +1,24 @@
-/*
- * smb_serializer.h
- *
- *  Created on: Jul 4, 2013
- *      Author: vahid
- */
+//Copyright (c) 2014 Singapore-MIT Alliance for Research and Technology
+//Licensed under the terms of the MIT License, as described in the file:
+//   license.txt   (http://opensource.org/licenses/MIT)
 
 #pragma once
 
 #include <sstream>
 #include <set>
-#include<jsoncpp/json/json.h>
+#include <jsoncpp/json/json.h>
 #include "ns3/log.h"
 
 namespace sim_mob {
 struct msg_header {
-	//data
-	std::string sender_id, sender_type, msg_type, msg_cat;
-	//constructor
-	msg_header() {
-	}
-	msg_header(std::string sender_id_, std::string sender_type_,
-			std::string msg_type_, std::string msg_cat_ = "UNK") :
-			sender_id(sender_id_), sender_type(sender_type_), msg_type(
-					msg_type_), msg_cat(msg_cat_)
+	std::string sender_id;
+	std::string sender_type;
+	std::string msg_type;
+	std::string msg_cat;
 
-	{
-	}
+	msg_header() {}
+	msg_header(std::string sender_id_, std::string sender_type_, std::string msg_type_, std::string msg_cat_ = "UNK") :
+			sender_id(sender_id_), sender_type(sender_type_), msg_type(msg_type_), msg_cat(msg_cat_) {}
 
 };
 
@@ -49,14 +42,13 @@ struct pckt_header {
 class JsonParser {
 public:
 
-	static bool parsePacketHeader(std::string& input, pckt_header &output,
-			Json::Value &root) {
+	static bool parsePacketHeader(const std::string& input, pckt_header &output, Json::Value &root) 
+	{
 		Json::Value packet_header;
 		Json::Reader reader;
 		bool parsedSuccess = reader.parse(input, root, false);
 		if (not parsedSuccess) {
 			NS_LOG_UNCOND( "Parsing Packet Header for Failed");
-//			NS_LOG_UNCOND( "Parsing Packet Header for '" << input << "' Failed");
 			return false;
 		}
 		int i = 0;
@@ -67,35 +59,19 @@ public:
 			NS_LOG_UNCOND( "Packet header not found.Parsing '" << input << "' Failed" );
 			return false;
 		}
-//		i += packet_header.isMember("SENDER") ? 2 : 0;
-//		i += packet_header.isMember("SENDER_TYPE") ? 4 : 0;
 		i += packet_header.isMember("NOF_MESSAGES") ? 8 : 0;
-//		i += packet_header.isMember("PACKET_SIZE") ? 16 : 0;
-		if (!(
-//				(packet_header.isMember("SENDER"))
-//				&&
-//				(packet_header.isMember("SENDER_TYPE"))
-//				&&
-		(packet_header.isMember("NOF_MESSAGES"))
-//				&&
-//				(packet_header.isMember("PACKET_SIZE"))
-		)) {
-			NS_LOG_UNCOND( "Packet header incomplete[" << i << "].Parsing '"
-					<< input << "' Failed" );
+		if (!((packet_header.isMember("NOF_MESSAGES")))) {
+			NS_LOG_UNCOND( "Packet header incomplete[" << i << "].Parsing '" << input << "' Failed" );
 			return false;
 		}
-//		output.sender_id = packet_header["SENDER"].asString();
-//		output.sender_type = packet_header["SENDER_TYPE"].asString();
 		output.nof_msgs = packet_header["NOF_MESSAGES"].asString();
-//		output.size_bytes = packet_header["PACKET_SIZE"].asString();
 		return true;
 	}
 
-	static bool parseMessageHeader(Json::Value & root, msg_header &output) {
-		if (!((root.isMember("SENDER")) && (root.isMember("SENDER_TYPE"))
-				&& (root.isMember("MESSAGE_TYPE")))) {
-			NS_LOG_UNCOND( "Message Header incomplete. Parsing  Failed"
-					);
+	static bool parseMessageHeader(const Json::Value& root, msg_header &output) {
+		if (!((root.isMember("SENDER")) && (root.isMember("SENDER_TYPE")) && (root.isMember("MESSAGE_TYPE")))) {
+			NS_LOG_UNCOND( "Message Header incomplete. Parsing  Failed: "  <<root.toStyledString());
+
 			return false;
 		}
 		output.sender_id = root["SENDER"].asString();
@@ -107,7 +83,8 @@ public:
 		return true;
 	}
 
-	static bool parseMessageHeader(std::string& input, msg_header &output) {
+	static bool parseMessageHeader(const std::string& input, msg_header &output) 
+	{
 		Json::Value root;
 		Json::Reader reader;
 		bool parsedSuccess = reader.parse(input, root, false);
@@ -118,7 +95,8 @@ public:
 		return parseMessageHeader(root, output);
 	}
 
-	static bool parseMessage(std::string& input, Json::Value &output) {
+	static bool parseMessage(const std::string& input, Json::Value &output) 
+	{
 		Json::Reader reader;
 		bool parsedSuccess = reader.parse(input, output, false);
 		if (not parsedSuccess) {
@@ -128,7 +106,8 @@ public:
 		return true;
 	}
 
-	static bool getPacketMessages(std::string& input, Json::Value &output) {
+	static bool getPacketMessages(const std::string& input, Json::Value &output) 
+	{
 		Json::Value root;
 		Json::Reader reader;
 		bool parsedSuccess = reader.parse(input, root, false);
@@ -184,13 +163,7 @@ public:
 		return writer.write(packet);
 	}
 
-	static std::string makeClientDoneMessage() {
-		Json::Value header = createPacketHeader(pckt_header("1"));
-		Json::Value msg = createMessageHeader(
-				msg_header("0", "NS3_SIMULATOR", "CLIENT_MESSAGES_DONE", "SYS"));
-		Json::FastWriter writer;
-		return writer.write(msg);
-	}
+
 	static std::string makeWhoAmIPacket(const std::string& token) {
 		Json::Value whoAmI_Packet_Header = createPacketHeader(pckt_header("1"));
 		Json::Value whoAreYou = createMessageHeader(msg_header("0", "NS3_SIMULATOR", "WHOAMI"));

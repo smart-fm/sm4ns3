@@ -13,7 +13,7 @@
 
 namespace sim_mob {
 
-sim_mob::BaseFactory<Registration*> Registration::m_appRegFactory;
+//sim_mob::BaseFactory<Registration*> Registration::m_appRegFactory;
 Registration::Registration(
 		sim_mob::Broker* broker_,
 		std::string simmobility_address_,
@@ -59,9 +59,9 @@ Registration * Registration::clone()const{
 	return new Registration(m_broker,m_simmobility_address,m_simmobility_port);
 }
 
-sim_mob::BaseFactory<Registration*> &Registration::getFactory(){
+/*sim_mob::BaseFactory<Registration*> &Registration::getFactory(){
 	return m_appRegFactory;
-}
+}*/
 
 bool Registration::doConnect()
 {
@@ -176,14 +176,22 @@ bool Registration::doAGENTS_INFO()
 			unsigned int type = add_json[i]["AGENT_TYPE"].asUInt();
 			NS_LOG_UNCOND(type);
 		}
-		bool res;
+//		bool res;
 		NS_LOG_UNCOND("Getting Base Agent of Type " << m_application);
-		 sim_mob::Agent *agentBase = sim_mob::Agent::getFactory().getPrototype(m_application, res);
-		 if(!res){
-			 NS_ASSERT_MSG(res,"Getting the Base Agent from Agent Factory Failed");
-		 }
-		 ns3::Ptr<Agent> agent = agentBase->clone(ii, m_broker);
-		sim_mob::Agent::AddAgent(ii, agent);
+		 //sim_mob::Agent *agentBase = sim_mob::Agent::getFactory().getPrototype(m_application, res);
+//		 if(!res){
+//			 NS_ASSERT_MSG(res,"Getting the Base Agent from Agent Factory Failed");
+//		 }
+
+		//TODO: Fix this further.
+		if (m_application=="Default") {
+			sim_mob::Agent::AddAgent(ii, ns3::CreateObject<Agent>(ii, m_broker));
+		} else if (m_application=="stk") {
+			sim_mob::Agent::AddAgent(ii, ns3::CreateObject<WFD_Agent>(ii, m_broker));
+		} else {
+			throw std::runtime_error("Invalid m_application.");
+		}
+
 //		agent->init();
 		NS_LOG_UNCOND( "Agent " << ii << " created" );
 	}

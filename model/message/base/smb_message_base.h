@@ -1,3 +1,10 @@
+//Copyright (c) 2014 Singapore-MIT Alliance for Research and Technology
+//Licensed under the terms of the MIT License, as described in the file:
+//   license.txt   (http://opensource.org/licenses/MIT)
+
+
+
+
 /*
  * this file is inclusion place for custome Messgae classes
  * whose type will be used in defining templated handlers
@@ -8,8 +15,10 @@
 #pragma once
 
 #include <iostream>
-#include<boost/shared_ptr.hpp>
-#include<jsoncpp/json/json.h>
+#include <boost/shared_ptr.hpp>
+#include <jsoncpp/json/json.h>
+
+#include "smb_serializer.h"
 
 namespace sim_mob
 {
@@ -20,44 +29,37 @@ typedef boost::shared_ptr<sim_mob::Handler> hdlr_ptr;
 namespace comm
 {
 //Forward Declaration
-template<class T>
 class Message;
 }
 
-//todo do something here. the following std::string is spoiling messge's templatization benefits
-typedef Json::Value msg_data_t;
-typedef sim_mob::comm::Message<msg_data_t> msg_t;
-typedef boost::shared_ptr<msg_t> msg_ptr; //putting std::string here is c++ limitation(old standard). don't blame me!-vahid
+//This mess needs to go.
+//typedef Json::Value msg_data_t;
+//typedef sim_mob::comm::Message<msg_data_t> msg_t;
+typedef boost::shared_ptr<sim_mob::comm::Message> msg_ptr;
 
 namespace comm
 {
 
 //Base Message
-template<class T>
 class Message
 {
-	T data;
-	hdlr_ptr handler;
+	Json::Value data;
+	msg_header header;
 protected:
-	void setData(T& data_)
-	{
+	void setData(const Json::Value& data_) {
 		data = data_;
 	}
 public:
-	Message(){};
-	Message(T data_):data(data_){}
-	hdlr_ptr supplyHandler(){
-		return handler;;
-	}
-	void setHandler( hdlr_ptr handler_)
-	{
-		handler = handler_;
-	}
-	T& getData()
-	{
+//	Message(){};
+	Message(const Json::Value& data_, const msg_header& header):data(data_), header(header){}
+
+	const Json::Value& getData() {
 		return data;
 	}
-	virtual boost::shared_ptr<Message> clone(T&) = 0;
+
+	const msg_header& getHeader() {
+		return header;
+	}
 };
 }//namespace comm
 }//namespace sim_mob

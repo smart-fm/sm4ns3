@@ -16,7 +16,7 @@ struct msg_header;
 class Broker;
 
 class Registration {
-	static sim_mob::BaseFactory<Registration*> m_appRegFactory;
+//	static sim_mob::BaseFactory<Registration*> m_appRegFactory;
 protected:
 	std::string m_application;
 	sim_mob::Broker* m_broker;
@@ -30,7 +30,7 @@ public:
 			std::string simmobility_port_, std::string application = "Default");
 	virtual ~Registration();
 	virtual Registration * clone()const;
-	static sim_mob::BaseFactory<Registration*> &getFactory();
+//	static sim_mob::BaseFactory<Registration*> &getFactory();
 	bool doConnect();
 	bool doWhoAreYou();
 	bool doAGENTS_INFO();

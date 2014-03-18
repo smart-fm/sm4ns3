@@ -3,33 +3,29 @@
 #include "smb_agent.h"
 #include "smb_broker.h"
 namespace sim_mob {
-MSG_All_Location::MSG_All_Location(msg_data_t data_): Message(data_)
+MSG_All_Location::MSG_All_Location(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
 {
 
 }
-MSG_All_Location::MSG_All_Location()
-{
 
-}
+/*MSG_All_Location::MSG_All_Location()
+{
+}*/
 
 MSG_All_Location::~MSG_All_Location()
 {
 
 }
 
-/*sim_mob::comm::Message<msg_data_t> **/ msg_ptr  MSG_All_Location::clone(msg_data_t& data_) {
-	return msg_ptr (new MSG_All_Location(data_));
-}
-
-Handler * MSG_All_Location::newHandler()
+/*Handler * MSG_All_Location::newHandler()
 {
 	return new HDL_All_Location();
-}
+}*/
 
-void HDL_All_Location::handle(msg_ptr message_,Broker* broker){
-	NS_LOG_UNCOND("Handling all location...");
+void HDL_All_Location::handle(msg_ptr message_,Broker* broker) const
+{
 	boost::unordered_map<unsigned int, ns3::Ptr<Agent> > &all_agents = Agent::getAgents();
-	Json::Value &data = message_->getData();
+	const Json::Value &data = message_->getData();
 	Json::FastWriter w;
 //	NS_LOG_UNCOND( w.write(data) );
 	Json::Value locationArray = data["LOCATIONS"];

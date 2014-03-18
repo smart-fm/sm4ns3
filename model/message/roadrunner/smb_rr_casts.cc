@@ -8,28 +8,29 @@ class Handler;
 
 namespace roadrunner
 {
-MSG_UNICAST::MSG_UNICAST()
+/*MSG_UNICAST::MSG_UNICAST()
+{
+
+}*/
+MSG_UNICAST::MSG_UNICAST(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
 {
 
 }
-MSG_UNICAST::MSG_UNICAST(msg_data_t& data_): Message(data_)
-{
 
-}
-
-msg_ptr MSG_UNICAST::clone(msg_data_t& data_) {
+/*msg_ptr MSG_UNICAST::clone(msg_data_t& data_) {
 	return msg_ptr (new MSG_UNICAST(data_));
 }
 
 Handler * MSG_UNICAST::newHandler()
 {
 	return new HDL_UNICAST();
-}
+}*/
 
-void HDL_UNICAST::handle(msg_ptr message_,Broker* broker){
+void HDL_UNICAST::handle(msg_ptr message_,Broker* broker) const
+{
 	NS_LOG_UNCOND("Handling unicast...");
 	//get the sender and receiver
-	Json::Value &data = message_->getData();
+	const Json::Value &data = message_->getData();
 	sim_mob::msg_header msg_header_;
 	if(!sim_mob::JsonParser::parseMessageHeader(data,msg_header_))
 	{
@@ -46,37 +47,37 @@ void HDL_UNICAST::handle(msg_ptr message_,Broker* broker){
 
 }
 
-MSG_MULTICAST::MSG_MULTICAST()
+/*MSG_MULTICAST::MSG_MULTICAST()
+{
+
+}*/
+
+MSG_MULTICAST::MSG_MULTICAST(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
 {
 
 }
 
-MSG_MULTICAST::MSG_MULTICAST(msg_data_t data_): Message(data_)
-{
-
-}
-
-msg_ptr MSG_MULTICAST::clone(msg_data_t& data_) {
+/*msg_ptr MSG_MULTICAST::clone(msg_data_t& data_) {
 	return msg_ptr (new MSG_MULTICAST(data_));
-}
+}*/
 
-Handler * MSG_MULTICAST::newHandler()
+/*Handler * MSG_MULTICAST::newHandler()
 {
 	return new HDL_MULTICAST();
-}
+}*/
 
-void HDL_MULTICAST::handle(msg_ptr message_,Broker* broker){
+void HDL_MULTICAST::handle(msg_ptr message_,Broker* broker) const
+{
 	NS_LOG_UNCOND( "Handling a MULTICAST message"  );
 //	NS_LOG_UNCOND( "The MULTICASTmessage is" << Json::FastWriter().write(message_->getData()) );
 	//step-1 : parse the message to get a list of src/dest agent pairs + the message
-	Json::Value &jData = message_->getData();
+	Json::Value jData = message_->getData(); //Make a copy.
 	try
 	{
 		unsigned int sender_agentId = jData["SENDING_AGENT"].asUInt();
 		ns3::Ptr<Agent> sender_agent = sim_mob::Agent::getAgent(sender_agentId);
 		Json::Value receiver_agentIDs = jData["RECIPIENTS"];//easy read
 		//want to reuse it.no need of this field
-//		jData.removeMember("SENDING_AGENT");
 		jData.removeMember("RECIPIENTS");
 		//ADD A FIELD TO BE USED BY SIMMOBILITY WHEN THIS MESSAGE IS FORWARDED TO IT THROUGH THE RECEIVING NODE
 		jData["RECEIVING_AGENT_ID"] = 0;//FILL IT IN THE FOLLOWING LOOP

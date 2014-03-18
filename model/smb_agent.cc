@@ -12,14 +12,14 @@
 #include "ns3/olsr-helper.h"
 
 namespace sim_mob {
-NS_LOG_COMPONENT_DEFINE ("SimmobilityAgentLogComponent");
+
 BaseWifi temp;
 //todo: for now and for the reason I dont know yet, I need to initialize like this otherwise m_wifi will not be initialized properly
 BaseWifi Agent::m_wifi = temp;
 BaseMobility Agent::m_mobility;
 BaseIP Agent::m_ip;
 boost::unordered_map<unsigned int, ns3::Ptr<Agent> > Agent::m_all_agents;
-sim_mob::BaseFactory<Agent*> Agent::m_agentFactory;
+//sim_mob::BaseFactory<Agent*> Agent::m_agentFactory;
 
 ns3::Ipv4Address
 GetPacketSource(Ptr<Packet> packet)
@@ -91,11 +91,13 @@ ns3::Ptr<Agent>& Agent::getAgent(unsigned int id){
 
 Agent::Agent(int m_AgentId_, sim_mob::Broker* broker_):m_AgentId(m_AgentId_), m_parent_broker(broker_) {
 	NS_LOG_UNCOND("Inside Agent::Agent(2)");
-	Agent();
+	m_isa = 0;
+//	Agent();
 }
 Agent::Agent(AgentConfig config):m_AgentId(config.id), m_parent_broker(config.broker) {
 	NS_LOG_UNCOND("Inside Agent::Agent(1)");
-	Agent();
+	m_isa = 0;
+//	Agent();
 }
 
 Agent::Agent(){
@@ -136,9 +138,11 @@ ns3::Ptr<Agent> Agent::clone(int m_AgentId_ , sim_mob::Broker* broker_){
 //ns3::Ptr<Agent> Agent::clone(int m_AgentId_ id, sim_mob::Broker* broker_){
 //	return ns3::CreateObject<Agent>(id,broker_);
 //}
-sim_mob::BaseFactory<Agent*> &Agent::getFactory(){
+
+
+/*sim_mob::BaseFactory<Agent*> &Agent::getFactory(){
 	return m_agentFactory;
-}
+}*/
 
 bool Agent::configure(){
 	return true;

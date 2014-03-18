@@ -8,19 +8,17 @@
 
 namespace sim_mob {
 
-class MSG_Agents_Info : public sim_mob::comm::Message<msg_data_t> {
-	//...
+class MSG_Agents_Info : public sim_mob::comm::Message {
 public:
-	Handler * newHandler();
-	MSG_Agents_Info(msg_data_t data_);
-	MSG_Agents_Info();
-	msg_ptr clone(msg_data_t& data_);
+//	Handler * newHandler();
+	MSG_Agents_Info(const Json::Value& data_, const sim_mob::msg_header& header);
+//	MSG_Agents_Info();
 };
 
 class HDL_Agents_Info : public Handler {
 
 public:
-	void handle(msg_ptr message_,Broker*);
+	virtual void handle(msg_ptr message_,Broker*) const;
 };
 
 } /* namespace sim_mob */

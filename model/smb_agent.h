@@ -60,8 +60,9 @@ public:
 
     //	all agents
     static boost::unordered_map<unsigned int,ns3::Ptr<Agent> > m_all_agents; //<m_AgentId, Agent*>
+
     /// agent factory(the best place to keep this factory is here itself(or may be a singleton)
-    static sim_mob::BaseFactory<Agent*> m_agentFactory;
+//    static sim_mob::BaseFactory<Agent*> m_agentFactory;
 public:
     /// Override TypeId.
     static ns3::TypeId GetTypeId(void);
@@ -72,7 +73,7 @@ public:
 	void DevRxTrace(std::string context, Ptr<const Packet> p);
 	virtual void init();
 	virtual ns3::Ptr<Agent> clone(int m_AgentId_, sim_mob::Broker* broker_);
-	static sim_mob::BaseFactory<Agent*> &getFactory();
+//	static sim_mob::BaseFactory<Agent*> &getFactory();
 	static void SetBasicNetworking(
 			const ns3::WifiHelper &wifi = ns3::WifiHelper::Default(),
 			const ns3::YansWifiPhyHelper &phy = ns3::YansWifiPhyHelper::Default(),
