@@ -26,6 +26,7 @@ def build(bld):
         'model/message/base/smb_time_info.cc',
         'model/message/base/smb_message_factory_base.cc',
         'model/message/roadrunner/smb_rr_casts.cc',
+        'model/smb_serializer.cc',
         'roadrunner_testing/smb_roadrunner_baseline.cc',
     ]
 

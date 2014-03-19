@@ -25,7 +25,7 @@ sim_mob::MessageFactory::MessageFactory()
 	HandlerMap[UNICAST] = new sim_mob::roadrunner::HDL_UNICAST();
 	HandlerMap[ALL_LOCATIONS_DATA] = new sim_mob::HDL_All_Location();
 	HandlerMap[AGENTS_INFO] = new sim_mob::HDL_Agents_Info();
-	HandlerMap[TIME_DATA] = new sim_mob::HDL_Time();
+	HandlerMap[TIME_DATA] = new sim_mob::NullHandler();
 }
 
 sim_mob::MessageFactory::~MessageFactory() 
@@ -52,7 +52,7 @@ const sim_mob::Handler* sim_mob::MessageFactory::getHandler(const std::string& m
 }
 
 
-bool sim_mob::MessageFactory::createSingleMessage(const Json::Value& input, msg_ptr& output)
+/*bool sim_mob::MessageFactory::createSingleMessage(const Json::Value& input, msg_ptr& output)
 {
 	msg_header messageHeader;
 	if (!sim_mob::JsonParser::parseMessageHeader(input, messageHeader)) {
@@ -78,10 +78,10 @@ bool sim_mob::MessageFactory::createSingleMessage(const Json::Value& input, msg_
 	}
 
 	return true;
-}
+}*/
 
 
-bool sim_mob::MessageFactory::createMessage(const std::string &input, std::vector<msg_ptr>& output)
+/*bool sim_mob::MessageFactory::createMessage(const std::string &input, std::vector<msg_ptr>& output)
 {
 	Json::Value root;
 	sim_mob::pckt_header packetHeader;
@@ -109,6 +109,6 @@ bool sim_mob::MessageFactory::createMessage(const std::string &input, std::vecto
 	}
 
 	return true;
-}
+}*/
 
 

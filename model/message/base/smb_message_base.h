@@ -18,10 +18,21 @@
 #include <boost/shared_ptr.hpp>
 #include <jsoncpp/json/json.h>
 
-#include "smb_serializer.h"
-
 namespace sim_mob
 {
+
+//New base message class; contains everything a Message is guranteed to have. 
+//Does NOT support dynamic inheritance; never store a subclass using this class as a pointer.
+struct MessageBase {
+	std::string sender_id;   ///<Who sent this message.
+	std::string sender_type; ///<The "type" of this sender (to be removed).
+	std::string msg_type;    ///<The "type" of this message. Used to identify the subclass.
+	std::string msg_cat;     ///<The "category" of this message (to be removed).
+};
+
+
+
+
 //Forward Declaration
 class Handler;
 typedef boost::shared_ptr<sim_mob::Handler> hdlr_ptr;
@@ -44,23 +55,25 @@ namespace comm
 class Message
 {
 	Json::Value data;
-	msg_header header;
+	//msg_header header;
 protected:
 	void setData(const Json::Value& data_) {
 		data = data_;
 	}
 public:
 //	Message(){};
-	Message(const Json::Value& data_, const msg_header& header):data(data_), header(header){}
+//	Message(const Json::Value& data_, const msg_header& header):data(data_), header(header){}
 
 	const Json::Value& getData() {
 		return data;
 	}
 
-	const msg_header& getHeader() {
+/*	const msg_header& getHeader() {
 		return header;
-	}
+	}*/
 };
+
+
 }//namespace comm
 }//namespace sim_mob
 

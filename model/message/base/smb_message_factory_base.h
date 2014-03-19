@@ -33,7 +33,7 @@ public:
 	~MessageFactory();
 
 	//Turn an input string into a list of Json-formatted messages
-	bool createMessage(const std::string&, std::vector<sim_mob::msg_ptr>&);
+//	bool createMessage(const std::string&, std::vector<sim_mob::msg_ptr>&);
 
 	//Retrieve a message handler for a given message type.
 	const sim_mob::Handler* getHandler(const std::string& msgType);
@@ -44,7 +44,7 @@ private:
 
 public:
 	//Make a single message from its Json representation.
-	bool createSingleMessage(const Json::Value&, sim_mob::msg_ptr&);
+	//bool createSingleMessage(const Json::Value&, sim_mob::msg_ptr&);
 };
 
 }

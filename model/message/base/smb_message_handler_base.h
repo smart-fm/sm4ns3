@@ -5,6 +5,7 @@
 #pragma once
 
 #include "smb_message_base.h"
+#include <jsoncpp/json/json.h>
 
 namespace sim_mob {
 
@@ -13,7 +14,13 @@ class Broker;
 class Handler {
 public:
 	virtual ~Handler() {}
-	virtual void handle(msg_ptr message_,Broker*) const = 0;
+	virtual void handle(const Json::Value&, Broker*) const = 0;
+};
+
+///A handler that does nothing.
+class NullHandler : public Handler {
+	virtual ~NullHandler() {}
+	virtual void handle(const Json::Value&, Broker*) const {}
 };
 
 }

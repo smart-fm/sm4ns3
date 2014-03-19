@@ -11,7 +11,7 @@
 #include "ns3/config-store-module.h"
 #include "ns3/wifi-module.h"
 #include "ns3/internet-module.h"
-#include "ns3/simmobility-module.h"
+#include "ns3/sm4ns3-module.h"
 
 using namespace ns3;
 
@@ -52,17 +52,8 @@ int main(int argc, char* argv[])
 	// Fix non-unicast data rate to be the same as that of unicast
 	Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue ("DsssRate1Mbps"));
 	
-//	sim_mob::BaseFactory<sim_mob::Registration*> & appRegFactory = sim_mob::Registration::getFactory();
-//	sim_mob::BaseFactory<sim_mob::Agent*> & agentFactory = sim_mob::Agent::getFactory();
-
+	//Start up the broker.
 	sim_mob::Broker broker(host, port);
-
-//	appRegFactory.Register("Default", new sim_mob::Registration(&broker,host, port));
-//	appRegFactory.Register("stk", new sim_mob::WFD_Registration(&broker,host, port));
-
-//	agentFactory.Register("Default", new sim_mob::Agent());
-//	agentFactory.Register("stk", new sim_mob::WFD_Agent());
-
 	if(!broker.start(application)) {
 		std::cout <<"ERROR: Broker Start Failed";
 		return 1;
@@ -70,7 +61,7 @@ int main(int argc, char* argv[])
 
 	//Run the Simulator, and cleanup when it's done.
 	Simulator::Run();
-	Simulator::Destroy ();
+	Simulator::Destroy();
 	std::cout <<"sm4ns3 - Simulation Destroyed\n";
 	return 0;
 }

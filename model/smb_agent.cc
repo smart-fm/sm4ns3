@@ -114,21 +114,16 @@ void Agent::DevRxTrace(std::string context, Ptr<const Packet> p) {
 
 void Agent::init()
 {
-	NS_LOG_UNCOND("Inside Agent::init");
 	m_isa = 0;
 	nc.Create(1);
 	ndc = m_wifi.Install(nc);
 	m_mobility.Install(nc);
 	iic = m_ip.Install(nc, ndc);
-	NS_LOG_UNCOND(iic.GetAddress(0));
 	m_node = nc.Get(0);
 	ns3::TypeId tid = ns3::TypeId::LookupByName("ns3::UdpSocketFactory");
 	m_socket = ns3::Socket::CreateSocket(m_node, tid);
 	m_socket->SetRecvCallback(MakeCallback(&Agent::ReceivePacket, this));
 	Bind();
-//	std::ostringstream oss;
-//    oss << "/NodeList/" << m_node->GetId() << "/DeviceList/0/Mac/MacRx";
-//    Config::Connect(oss.str(), MakeCallback(&Agent::DevRxTrace, this));
 }
 
 ns3::Ptr<Agent> Agent::clone(int m_AgentId_ , sim_mob::Broker* broker_){
@@ -150,50 +145,41 @@ bool Agent::configure(){
 
 int Agent::Bind(uint16_t port)
 {
-	if(m_isa)
-	{
+	if(m_isa) {
 		delete m_isa;
-		m_isa = 0;
+		m_isa = NULL;
 	}
     m_isa = new ns3::InetSocketAddress (/*ns3::Ipv4Address::GetAny ()*/GetAddress(), port);
-    if(!m_socket)
-    {
-    	return -1;
+    if(!m_socket) {
+    	throw std::runtime_error("Can't bind socket");
     }
     return m_socket->Bind(*m_isa);
 }
 
 void Agent::ReceivePacket (ns3::Ptr<ns3::Socket> socket)
 {
-//  ns3::Address addr;
-//  ns3::Address remote_address;
-//  socket->GetSockName (addr);
-//  ns3::InetSocketAddress iaddr = ns3::InetSocketAddress::ConvertFrom (addr);
-//  NS_LOG_UNCOND ("Agent " << m_AgentId <<  " Received data from Socket: " << iaddr.GetIpv4 () << " port: " << iaddr.GetPort ());
-  ns3::Ptr<ns3::Packet> packet;
-  std::string str;
-  int i = 0;
-  while ((packet = socket->Recv()))
-    {
-//	  ns3::InetSocketAddress remote_iaddr = ns3::InetSocketAddress::ConvertFrom (addr);
-//	  NS_LOG_UNCOND ("Received data from remote Address : " << GetPacketSource(packet));
-	  int size = packet->GetSize ();
-      if (size > 0)
-        {
-    	  uint8_t buffer[size];
-    	  packet->CopyData(buffer , size);
-    	  str.assign(buffer , buffer+size);
-          NS_LOG_UNCOND (i++ << ": Agent[" << m_AgentId << "] Received '"<< str << "'");
-          Json::Value j_msg;
-          JsonParser::parseMessage(str,j_msg);
-          //change the sender and sender type information, the rest seems better to remain untouched :)
-          j_msg["SENDER"] = "0";
-          j_msg["SENDER_TYPE"] = "NS3_SIMULATOR";
-//          boost::shared_ptr<sim_mob::comm::Message<Json::Value> >msg(new sim_mob::comm::Message<Json::Value>(j_msg));
-          m_parent_broker->insertOutgoing(j_msg);
-        }
-    }
+	ns3::Ptr<ns3::Packet> packet;
+	std::string str;
+	while ((packet = socket->Recv())) {
+		int size = packet->GetSize ();
+		if (size > 0) {
+			uint8_t buffer[size];
+			packet->CopyData(buffer , size);
+			str.assign(buffer , buffer+size);
+			Json::Value j_msg;
+			if (!JsonParser::parseJSON(str,j_msg)) {
+				std::cout <<"ERROR: Unable to parse: \"" <<str <<"\"\n";
+				continue;
+			}
+
+			//change the sender and sender type information, then forward to the client Android app.
+			j_msg["SENDER"] = "0";
+			j_msg["SENDER_TYPE"] = "NS3_SIMULATOR";
+			m_parent_broker->insertOutgoing(j_msg);
+		}
+	}
 }
+
 
 /*
  * Empty destructor
@@ -271,17 +257,20 @@ ns3::Address Agent::GetBroadcastAddress() {
     return m_device->GetBroadcast();
 }
 
-int Agent::SendTo(ns3::Ptr<Agent> agent, ns3::Ptr<ns3::Packet> packet) {
-	if(!agent)
-	{
-		NS_LOG_UNCOND("Destination Agent is Invalid");
+int Agent::SendTo(ns3::Ptr<Agent> agent, ns3::Ptr<ns3::Packet> packet) 
+{
+	if(!agent) {
+		std::cout <<"Destination Agent is Invalid\n";
 		return -1;
 	}
+
 	ns3::InetSocketAddress remote = ns3::InetSocketAddress (agent->GetAddress(), 80);
-	m_socket->Connect (remote);
-		  NS_LOG_UNCOND ("Sending packer[" << sim_mob::Broker::global_pckt_cnt++ << "] from Address[" << m_AgentId << " : " << GetAddress() << "] to remote location[" << agent->GetAgentId() << " : "  << agent->GetAddress() << "]");
+	m_socket->Connect(remote);
+	NS_LOG_UNCOND ("Sending packer[" << sim_mob::Broker::global_pckt_cnt << "] from Address[" << m_AgentId << " : " << GetAddress() << "] to remote location[" << agent->GetAgentId() << " : "  << agent->GetAddress() << "]");
+	sim_mob::Broker::global_pckt_cnt++;
+
 	int res = m_socket->Send(packet);
-    return res;
+   return res;
 }
 
 /*************************************************************************************

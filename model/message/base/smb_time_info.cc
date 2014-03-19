@@ -1,33 +1,26 @@
 #include "smb_time_info.h"
-//#include "smb_message_info.h"
 #include "smb_agent.h"
 #include "smb_broker.h"
-namespace sim_mob {
-MSG_Time::MSG_Time(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
+
+
+/*sim_mob::MSG_Time::MSG_Time(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
 {
 }
 
-/*MSG_Time::MSG_Time()
-{
-}*/
-
-MSG_Time::~MSG_Time()
+sim_mob::MSG_Time::~MSG_Time()
 {
 }
 
 
-/*Handler * MSG_Time::newHandler()
+void sim_mob::HDL_Time::handle(const Json::Value&, Broker* broker) const 
 {
-	return new HDL_Time();
-}*/
-
-void HDL_Time::handle(msg_ptr message_,Broker* broker) const 
-{
-	//for now, just set a global tick counter in the broker
-
-}//handle()
-
-HDL_Time::~HDL_Time() {
-
+	//Note: This is currently handled via a global timer in the Broker.
 }
-}//namespace
+
+sim_mob::HDL_Time::~HDL_Time() 
+{
+}
+
+
+*/
+

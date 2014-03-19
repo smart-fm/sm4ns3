@@ -12,12 +12,12 @@
 
 namespace sim_mob {
 
-class MSG_READY_TO_RECEIVE : public sim_mob::comm::Message {
+/*class MSG_READY_TO_RECEIVE : public sim_mob::comm::Message {
 	//...
 public:
 	Handler * newHandler();
 	MSG_READY_TO_RECEIVE(const Json::Value& data_, const sim_mob::msg_header& header);
 //	MSG_READY_TO_RECEIVE();
-};
+};*/
 
 } /* namespace sim_mob */

@@ -1,58 +1,44 @@
 #include "smb_all_location.h"
-//#include "smb_message_info.h"
 #include "smb_agent.h"
 #include "smb_broker.h"
-namespace sim_mob {
-MSG_All_Location::MSG_All_Location(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
+
+#include "smb_serializer.h"
+
+/*sim_mob::MSG_All_Location::MSG_All_Location(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
 {
 
 }
-
-/*MSG_All_Location::MSG_All_Location()
+sim_mob::MSG_All_Location::~MSG_All_Location()
 {
 }*/
 
-MSG_All_Location::~MSG_All_Location()
-{
 
-}
-
-/*Handler * MSG_All_Location::newHandler()
+void sim_mob::HDL_All_Location::handle(const Json::Value& msg, Broker* broker) const
 {
-	return new HDL_All_Location();
-}*/
+	//Ask the serializer for an AllLocations message.
+	AllLocationsMessage aInfo = JsonParser::parseAllLocations(msg);
 
-void HDL_All_Location::handle(msg_ptr message_,Broker* broker) const
-{
-	boost::unordered_map<unsigned int, ns3::Ptr<Agent> > &all_agents = Agent::getAgents();
-	const Json::Value &data = message_->getData();
-	Json::FastWriter w;
-//	NS_LOG_UNCOND( w.write(data) );
-	Json::Value locationArray = data["LOCATIONS"];
-	int n = locationArray.size();
-	for(int i= 0; i < n; i++)
-	{
-		unsigned int id = locationArray[i]["ID"].asUInt();
-		if(all_agents.find(id) == all_agents.end())
-		{
-			NS_LOG_UNCOND( "Agent id[" << id << "] not found" );
+	//Now react accordingly.
+	boost::unordered_map<unsigned int, ns3::Ptr<Agent> >& all_agents = Agent::getAgents();
+	for (std::map<unsigned int, sim_mob::DPoint>::const_iterator it=aInfo.agentLocations.begin(); it!=aInfo.agentLocations.end(); it++) {
+		if(all_agents.find(it->first) == all_agents.end()) {
+			std::cout <<"Agent id (" <<it->first << ") not found.\n";
 			continue;
 		}
-		double x = locationArray[i]["x"].asDouble();
-		double y = locationArray[i]["y"].asDouble();
-		 ns3::Ptr<Agent> agent = all_agents[id];
-		 ns3::Vector v(x, y, 0.0);
-		 if(!agent){
-			 NS_LOG_UNCOND("HDL_All_Location=>Invalid Agent[" << id << "]");
-		 }
-		 else
-		 {
-			 agent->SetPosition(v);
-		 }
+
+		ns3::Ptr<Agent> agent = all_agents[it->first];
+		ns3::Vector v(it->second.x, it->second.y, 0.0);
+		if(!agent){
+			std::cout <<"Agent id (" <<it->first << ") invalid.\n";
+			continue;
+		} else {
+			agent->SetPosition(v);
+		}
 	}
-}//handle()
-
-HDL_All_Location::~HDL_All_Location() {
-
 }
-}//namespace
+
+sim_mob::HDL_All_Location::~HDL_All_Location() 
+{
+}
+
+

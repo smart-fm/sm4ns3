@@ -11,7 +11,7 @@
 
 namespace sim_mob {
 
-class MSG_Time : public sim_mob::comm::Message {
+/*class MSG_Time : public sim_mob::comm::Message {
 public:
 //	Handler * newHandler();
 	MSG_Time(const Json::Value& data_, const sim_mob::msg_header& header);
@@ -23,8 +23,8 @@ public:
 class HDL_Time : public Handler {
 
 public:
-	virtual void handle(msg_ptr message_,Broker*) const;
+	virtual void handle(const Json::Value& msg, Broker*) const;
 	virtual ~HDL_Time();
-};
+};*/
 
 } /* namespace sim_mob */

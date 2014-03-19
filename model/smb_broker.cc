@@ -51,11 +51,11 @@ void Broker::onMessageReceived(const string& input)
 	// otherwise(if simulation is started) post the messages into the main incoming queue
 	CriticalSection lock(mutex_pause);
 
-	//Extract and post message
-	if(parsePacket(input)) {
-		m_pause = false;
-//		cond_sim.Signal();
+	//Extract and post message. The Broker's other thread is spinning on m_pause.
+	if(!parsePacket(input)) {
+		std::cout <<"Error: could not parse packet.\n";
 	}
+	m_pause = false;
 }
 
 
@@ -95,10 +95,6 @@ bool Broker::start(std::string application)
 		return false;
 	}
 
-	//start a thread for io_service_run
-	//service_thread = SystemThread(MakeCallback (&Broker::run_io_service, this));
-	//service_thread.Start();
-
 	//This needs to go in its own thread; perhaps there is a better way of calling it? (We don't really need async access).
 	iorun_thread = SystemThread(MakeCallback (&Broker::run_io_service, this));
 	iorun_thread.Start();
@@ -129,7 +125,8 @@ void Broker::run_io_service()
 
 void Broker::insertOutgoing(const Json::Value &value) 
 {
-	m_outgoing.post(value);
+	CriticalSection lock(mutex_pause);
+	m_outgoing.push_back(value);
 }
 
 void Broker::pause() 
@@ -154,7 +151,12 @@ void Broker::pause()
 			sendOutgoing();
 			NS_LOG_DEBUG( "Broker::sendOutgoing() done" );
 	
-			conn.send(JsonParser::makeClientDonePacket());	//due to nature of DES, this must be sync rather than async
+			std::vector<Json::Value> res;
+			res.push_back(JsonParser::makeClientDone());
+			std::string resMsg;
+			JsonParser::serialize(res, resMsg);
+
+			conn.send(resMsg);	//due to nature of DES, this must be sync rather than async
 			NS_LOG_DEBUG("Broker::send to simmobility done" );
 
 			Simulator::Schedule(MilliSeconds(100), &Broker::pause, this);
@@ -174,23 +176,36 @@ void Broker::pause()
 
 void Broker::processIncoming() 
 {
-	msg_ptr msg;
-	while (m_incoming.pop(msg)) {
-		const sim_mob::Handler* handler = msgFactory.getHandler(msg->getHeader().msg_type);
+	CriticalSection lock(mutex_pause);
+	for (std::vector<Json::Value>::const_iterator it=m_incoming.begin(); it!=m_incoming.end(); it++) {
+		if (!it->isMember("MESSAGE_TYPE")) {
+			std::cout <<"Invalid message, no message_type\n";
+			return;
+		}
+
+		//Get the handler, let it parse its own expected message type.
+		const sim_mob::Handler* handler = msgFactory.getHandler((*it)["MESSAGE_TYPE"].asString());
 		if (handler) {
-			handler->handle(msg, this);
+			handler->handle(*it, this);
 		} else {
-			NS_LOG_UNCOND( "no handler for [" << msg->getData()["MESSAGE_TYPE"].asString() << "]" );
+			std::cout <<"no handler for type \"" <<(*it)["MESSAGE_TYPE"].asString() << "\"\n";
 		}
 	}
-
+	m_incoming.clear();
 }
 
 
 void Broker::sendOutgoing() {
 
-	//just pop off the message queue and click handl ;)
-	Json::Value root ;
+	//Even easier.
+	std::string msg;
+	if (!JsonParser::serialize(m_outgoing, msg))  {
+		std::cout <<"Broker couldn't serialize messages.\n";
+		return;
+	}
+	conn.send(msg);
+
+/*	Json::Value root ;
 	int i = 0;
 	Json::Value msg;
 	while (m_outgoing.pop(msg)) {
@@ -199,7 +214,7 @@ void Broker::sendOutgoing() {
 	}
 	Json::Value header = JsonParser::createPacketHeader(i);
 	root["PACKET_HEADER"] = header;
-	conn.send(Json::FastWriter().write(root));
+	conn.send(Json::FastWriter().write(root));*/
 }
 
 //parses the packet to extract messages,
@@ -208,38 +223,22 @@ void Broker::sendOutgoing() {
 //return value will tell you whether notify or not
 bool Broker::parsePacket(const std::string &input)
 {
-	bool notify = false;
-	std::string type, data;
-	Json::Value root;
-	sim_mob::pckt_header packetHeader;
-	if(!sim_mob::JsonParser::parsePacketHeader(input, packetHeader, root)) {
-		return false;
-	}
-	if(!sim_mob::JsonParser::getPacketMessages(input,root)) {
+	CriticalSection lock(mutex_pause);
+	//Let the serializer handle the heavy lifting.
+	m_incoming.clear(); //Just in case.
+	if (!JsonParser::deserialize(input, m_incoming)) {
+		std::cout <<"Broker couldn't parse packet.\n";
 		return false;
 	}
 
-	for (unsigned int index = 0; index < root.size(); index++) {
-		msg_header messageHeader;
-		const Json::Value& curr_json_msg = root[index];
-		if (!sim_mob::JsonParser::parseMessageHeader(curr_json_msg, messageHeader)) {
-			continue;
-		}
-		msg_ptr msg = msg_ptr();
-
-		bool success = msgFactory.createSingleMessage(curr_json_msg,msg);
-
-
-		if(success) {
-			//this message is essentially the last one in a packet
-			if((messageHeader.msg_cat == "SYS") && (messageHeader.msg_type == "READY_TO_RECEIVE")) {
-				notify =  true;
-			} else {
-				m_incoming.post(msg);
-			}
+	//We have to introspect a little bit, in order to find our READY_TO_RECEIVE message.
+	for (std::vector<Json::Value>::const_iterator it=m_incoming.begin(); it!=m_incoming.end(); it++) {
+		if (it->isMember("MESSAGE_TYPE") && (*it)["MESSAGE_TYPE"] == "READY_TO_RECEIVE") {
+			return true;
 		}
 	}
-	return notify;
+
+	return false;
 }
 
 

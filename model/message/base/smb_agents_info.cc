@@ -5,42 +5,25 @@
 #include "smb_agents_info.h"
 #include "smb_agent.h"
 #include "smb_broker.h"
+#include "smb_serializer.h"
 
-sim_mob::MSG_Agents_Info::MSG_Agents_Info(const Json::Value& data_, const sim_mob::msg_header& header) : Message(data_, header)
+/*sim_mob::MSG_Agents_Info::MSG_Agents_Info(const Json::Value& data_, const sim_mob::msg_header& header) : Message(data_, header)
 {
-}
+}*/
 
-void sim_mob::HDL_Agents_Info::handle(msg_ptr message_, Broker* broker) const
+void sim_mob::HDL_Agents_Info::handle(const Json::Value& msg, Broker* broker) const
 {
-	NS_LOG_UNCOND( "Broker::processInitMessages::AGENTS_INFO" );
-	const Json::Value &data = message_->getData();
-	//add
-	if (data.isMember("ADD")) {
-		if (!data["ADD"].isArray()) {
-			NS_LOG_UNCOND( "Array of Agents(to add) information not found");
-			return;
-		}
-		Json::Value add_json = data["ADD"];
-		for (unsigned int i = 0; i < add_json.size(); i++) {
-			unsigned int ii = add_json[i]["AGENT_ID"].asUInt();
-			ns3::Ptr<Agent> agent = ns3::CreateObject<sim_mob::Agent>(ii, broker);
-			sim_mob::Agent::AddAgent(ii, agent);
-		}
-	}
+	//Ask the serializer for an AgentsInfo message.
+	AgentsInfoMessage aInfo = JsonParser::parseAgentsInfo(msg);
 
-	//remove
-	if (data.isMember("REMOVE")) {
-		if (!data["REMOVE"].isArray()) {
-			NS_LOG_UNCOND( "Array of Agents(to remove) information not found");
-			return ;
-		}
-		Json::Value add_json = data["REMOVE"];
-		for (unsigned int i = 0; i < add_json.size(); i++) {
-			unsigned int ii = add_json[i]["AGENT_ID"].asUInt();
-			sim_mob::Agent::RemoveAgent(ii);
-		}
+	//Process add/remove agent requestss
+	for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
+		ns3::Ptr<Agent> agent = ns3::CreateObject<sim_mob::Agent>(*it, broker);
+		sim_mob::Agent::AddAgent(*it, agent);
 	}
-
+	for (std::vector<unsigned int>::const_iterator it=aInfo.remAgentIds.begin(); it!=aInfo.remAgentIds.end(); it++) {
+		sim_mob::Agent::RemoveAgent(*it);
+	}
 }
 
 

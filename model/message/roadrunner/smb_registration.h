@@ -22,15 +22,10 @@ protected:
 	sim_mob::Broker* m_broker;
 	std::string m_simmobility_address;
 	std::string m_simmobility_port;
-	//get message header from a packet containing only 1 message
-	bool get_message_header(std::string &input, msg_header &messageHeader);
 public:
-	Registration(sim_mob::Broker* broker_,
-			std::string simmobility_address_,
-			std::string simmobility_port_, std::string application = "Default");
+	Registration(sim_mob::Broker* broker_, std::string simmobility_address_, std::string simmobility_port_, std::string application = "Default");
 	virtual ~Registration();
 	virtual Registration * clone()const;
-//	static sim_mob::BaseFactory<Registration*> &getFactory();
 	bool doConnect();
 	bool doWhoAreYou();
 	bool doAGENTS_INFO();
@@ -62,11 +57,15 @@ class WFD_Registration : public Registration {
 	 * Performs a group owner negotiation
 	 */
 	bool doRoleAssignment();
+
 	/**
 	 * Create a json string of GO/Client information
 	 * based on local containers
 	 */
-	const std::string & makeGO_ClientPacket();
+	std::string makeGO_ClientPacket();
+
+	//Serialize part of a GOCLIENT message.
+	static void makeGO_ClientArrayElement(unsigned int go, std::vector<unsigned int> clients, Json::Value & output);
 
 public:
 	WFD_Registration(sim_mob::Broker*,

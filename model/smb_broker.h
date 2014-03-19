@@ -49,9 +49,20 @@ private:
 //	ns3::SystemCondition cond_sim;
 
 	bool m_pause;
-	sim_mob::MessageQueue<msg_ptr> m_incoming;
+
+	//
+	//TODO: Double check for race conditions here. I'd like to encapsulate all the 
+	//      thread-unsafe code into obvious places; otherwise, we'll have to restore the MessageQueues.
+	//
+
+	//sim_mob::MessageQueue<msg_ptr> m_incoming;
+	std::vector<Json::Value> m_incoming;
+
+	//sim_mob::MessageQueue<Json::Value> m_outgoing;
+	std::vector<Json::Value> m_outgoing;
+
 	sim_mob::MessageQueue<std::string> m_incoming_conf;
-	sim_mob::MessageQueue<Json::Value> m_outgoing;
+
 
 	sim_mob::MessageFactory msgFactory;
 

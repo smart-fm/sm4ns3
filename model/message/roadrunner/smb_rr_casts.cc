@@ -3,113 +3,76 @@
 #include "ns3/packet.h"
 #include "smb_agent.h"
 #include "smb_broker.h"
+#include "smb_serializer.h"
+
 namespace sim_mob {
 class Handler;
+} //End namespace sim_mob
 
-namespace roadrunner
+
+
+void sim_mob::roadrunner::HDL_UNICAST::handle(const Json::Value& msg, Broker* broker) const
 {
-/*MSG_UNICAST::MSG_UNICAST()
-{
+	//Ask the serializer for a Unicast message.
+	UnicastMessage ucMsg = JsonParser::parseUnicast(msg);
 
-}*/
-MSG_UNICAST::MSG_UNICAST(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
-{
-
-}
-
-/*msg_ptr MSG_UNICAST::clone(msg_data_t& data_) {
-	return msg_ptr (new MSG_UNICAST(data_));
-}
-
-Handler * MSG_UNICAST::newHandler()
-{
-	return new HDL_UNICAST();
-}*/
-
-void HDL_UNICAST::handle(msg_ptr message_,Broker* broker) const
-{
-	NS_LOG_UNCOND("Handling unicast...");
-	//get the sender and receiver
-	const Json::Value &data = message_->getData();
-	sim_mob::msg_header msg_header_;
-	if(!sim_mob::JsonParser::parseMessageHeader(data,msg_header_))
-	{
-		NS_LOG_UNCOND( "HDL_UNICAST::handle: message header incomplete" );
-		return;
-	}
-	std::string android_sender_id(msg_header_.sender_id) ; //easy read
-	std::string android_sender_type(msg_header_.sender_type); //easy read
-	std::string android_receiver_id(data["RECEIVER"].asString()) ; //easy read
-	std::string android_receiver_type(msg_header_.sender_type); //easy read, (same as sender)
-
+	//Prepare a message.
+	std::string android_sender_id = ucMsg.sender_id;
+	std::string android_sender_type = ucMsg.sender_type;
+	std::string android_receiver_id = ucMsg.receiver;
+	std::string android_receiver_type = ucMsg.sender_type;
 
 	//send to destination
-
+	//TODO: was this ever implemented? ~Seth
 }
 
-/*MSG_MULTICAST::MSG_MULTICAST()
+void sim_mob::roadrunner::HDL_MULTICAST::handle(const Json::Value& msg, Broker* broker) const
 {
+	//Ask the serializer for a Multicast message.
+	MulticastMessage mcMsg = JsonParser::parseMulticast(msg);
 
-}*/
+	//Prepare and send a message to each client.
+	//TODO: Can we invoke the serializer on this somehow?
+	Json::Value res;
 
-MSG_MULTICAST::MSG_MULTICAST(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
-{
+	//Basic message properties.
+	res["SENDER"] = mcMsg.sender_id;
+	res["SENDER_TYPE"] = mcMsg.sender_type;
+	res["MESSAGE_TYPE"] = mcMsg.msg_type;
+	res["MESSAGE_CAT"] = mcMsg.msg_cat;
 
-}
+	//Custom message properties.
+	res["SENDING_AGENT"] = mcMsg.sender_id;
+	res["MULTICAST_DATA"] = mcMsg.msgData;
 
-/*msg_ptr MSG_MULTICAST::clone(msg_data_t& data_) {
-	return msg_ptr (new MSG_MULTICAST(data_));
-}*/
+	//Retrieve the sending agent.
+	ns3::Ptr<Agent> sending_agent = sim_mob::Agent::getAgent(res["SENDING_AGENT"].asUInt());
+	if (!sending_agent) {
+		std::cout <<"Sending agent is invalid.\n";
+		return;
+	}
 
-/*Handler * MSG_MULTICAST::newHandler()
-{
-	return new HDL_MULTICAST();
-}*/
+	//Now loop over recipients, setting remaining custom properites and sending the message.
+	for (std::vector<unsigned int>::const_iterator it=mcMsg.recipients.begin(); it!=mcMsg.recipients.end(); it++) {
+		//Not sure if all of these must be set for every recipient.
+		res["RECEIVING_AGENT_ID"] = *it;
+		res["GLOBAL_PACKET_COUNT"] = broker->global_pckt_cnt;
+		res["TICK_SENT"] = broker->m_global_tick;
 
-void HDL_MULTICAST::handle(msg_ptr message_,Broker* broker) const
-{
-	NS_LOG_UNCOND( "Handling a MULTICAST message"  );
-//	NS_LOG_UNCOND( "The MULTICASTmessage is" << Json::FastWriter().write(message_->getData()) );
-	//step-1 : parse the message to get a list of src/dest agent pairs + the message
-	Json::Value jData = message_->getData(); //Make a copy.
-	try
-	{
-		unsigned int sender_agentId = jData["SENDING_AGENT"].asUInt();
-		ns3::Ptr<Agent> sender_agent = sim_mob::Agent::getAgent(sender_agentId);
-		Json::Value receiver_agentIDs = jData["RECIPIENTS"];//easy read
-		//want to reuse it.no need of this field
-		jData.removeMember("RECIPIENTS");
-		//ADD A FIELD TO BE USED BY SIMMOBILITY WHEN THIS MESSAGE IS FORWARDED TO IT THROUGH THE RECEIVING NODE
-		jData["RECEIVING_AGENT_ID"] = 0;//FILL IT IN THE FOLLOWING LOOP
-		for (unsigned int index = 0; index < receiver_agentIDs.size(); index++) {
-			unsigned int receiver_agentId = receiver_agentIDs[index].asUInt();
-			jData["RECEIVING_AGENT_ID"] = receiver_agentId;
-			jData["GLOBAL_PACKET_COUNT"] = broker->global_pckt_cnt;
-			jData["TICK_SENT"] = broker->m_global_tick;
-			ns3::Ptr<Agent> receiving_agent = sim_mob::Agent::getAgent(receiver_agentId);
-			std::string str = Json::FastWriter().write(jData);
-			ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>((uint8_t*) str.c_str(), str.length());
-			 if(!sender_agent || !receiving_agent ){
-				 NS_LOG_UNCOND("HDL_MULTICAST=>Invalid Agent[send:" << sender_agent << " receive:" << receiving_agent << "]");
-			 }
-			 else
-			 {
-					if(sender_agent->SendTo(receiving_agent,packet) != -1){
-//						NS_LOG_UNCOND( "Sending from[ " << sender_agent->GetAgentId() << "]  to [" << receiving_agent->GetAgentId() << "]" );
-					}
-			 }
+		//Retrieve the current recipient.
+		ns3::Ptr<Agent> receiving_agent = sim_mob::Agent::getAgent(*it);
+		if (!receiving_agent) {
+			std::cout <<"Receiving agent is invalid.\n";
+			continue;
+		}
 
+		//Serialize and send the message.
+		std::string str = Json::FastWriter().write(res);
+		ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>((uint8_t*) str.c_str(), str.length());
+		if (sending_agent->SendTo(receiving_agent,packet)==-1) {
+			std::cout <<"ERROR: Message could not be sent.\n";
 		}
 	}
-	catch(std::exception e)
-	{
-		NS_LOG_UNCOND( e.what() << "[The message doesn't have correct sender/receiver information]" );
-	}
-
-	//step-2 : send the message
-
-}//handle()
+}
 
 
-}/* namespace roadrunner */
-} /* namespace sim_mob */

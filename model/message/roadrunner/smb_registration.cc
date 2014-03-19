@@ -14,54 +14,24 @@
 namespace sim_mob {
 
 //sim_mob::BaseFactory<Registration*> Registration::m_appRegFactory;
-Registration::Registration(
-		sim_mob::Broker* broker_,
-		std::string simmobility_address_,
-		std::string simmobility_port_, std::string application_
-		)
-:
-				m_application(application_),
-				m_broker(broker_),
-				m_simmobility_address(simmobility_address_),
-				m_simmobility_port(simmobility_port_)
+Registration::Registration(sim_mob::Broker* broker_, std::string simmobility_address_, std::string simmobility_port_, std::string application_) :
+	m_application(application_),
+	m_broker(broker_),
+	m_simmobility_address(simmobility_address_),
+	m_simmobility_port(simmobility_port_)
 {
-	// TODO Auto-generated constructor stub
 	NS_LOG_UNCOND( "Registration\n" );
 }
 
-Registration::~Registration() {
-	// TODO Auto-generated destructor stub
+Registration::~Registration() 
+{
 }
 
-//USED TO PARSE SINGLE MESSAGE PACKETS
-bool Registration::get_message_header(std::string &input,
-		msg_header &messageHeader) {
 
-	std::string type, data;
-	Json::Value root;
-	sim_mob::pckt_header packetHeader;
-	if (!sim_mob::JsonParser::parsePacketHeader(input, packetHeader,
-			root)) {
-		NS_LOG_UNCOND( "Simmobility not Ready, Trying Again" );
-		return false;
-	}
-	if (!sim_mob::JsonParser::getPacketMessages(input, root)) {
-		return false;
-	}
-
-	int i = 0;
-	if (!sim_mob::JsonParser::parseMessageHeader(root[i], messageHeader)) {
-		return false;
-	}
-	return true;
-}
-Registration * Registration::clone()const{
+Registration * Registration::clone() const
+{
 	return new Registration(m_broker,m_simmobility_address,m_simmobility_port);
 }
-
-/*sim_mob::BaseFactory<Registration*> &Registration::getFactory(){
-	return m_appRegFactory;
-}*/
 
 bool Registration::doConnect()
 {
@@ -79,41 +49,35 @@ bool Registration::doConnect()
 }
 bool Registration::doWhoAreYou()
 {
-	//expect to read WHOAREYOU message
-	std::string WHOAREYOU;
-	if (!m_broker->getConnection().receive(WHOAREYOU)) {
-		NS_LOG_UNCOND( "read WHOAREYOU error" );
-		return false;
-	}
-	msg_header messageHeader;
-	int res = get_message_header(WHOAREYOU, messageHeader);
-	if (!res || messageHeader.msg_type != "WHOAREYOU") {
-		NS_LOG_UNCOND(
-				 "Simmobility didn't send the WHOAREYOU message"
-				<< "[" << messageHeader.msg_type << "]" );
+	//A single "WHOAREYOU" message it expected
+	std::string str;
+	if (!m_broker->getConnection().receive(str)) {
+		std::cout <<"Error reading WHOAREYOU.\n";
 		return false;
 	}
 
-	Json::Value root;
-	sim_mob::pckt_header packetHeader;
-	if (!sim_mob::JsonParser::parsePacketHeader(WHOAREYOU, packetHeader, root)) {
-		NS_LOG_UNCOND( "Simmobility didn't send a valid packet" );
-		return false;
-	}
-	if (!sim_mob::JsonParser::getPacketMessages(WHOAREYOU, root)) {
-		NS_LOG_UNCOND("No messages in this packet" );
+	//Parse it.
+	Json::Value props;
+	sim_mob::MessageBase msg;
+	if (!JsonParser::deserialize_single(str, "WHOAREYOU", msg, props)) {
+		std::cout <<"Error deserializing WHOAREYOU message.\n";
 		return false;
 	}
 
-	Json::Value& curr_json = root[0];
-	if (!curr_json.isMember("token")) {
-		NS_LOG_UNCOND( "\"token\" not found");
+	//Make sure it has a token.
+	if (!props.isMember("token")) {
+		std::cout <<"ERROR: \"token\" not found\n";
 		return false;
 	}
 
-	//write whoareyou message
-	std::string WHOAMI = JsonParser::makeWhoAmIPacket(curr_json["token"].asString());
-	if (!m_broker->getConnection().send(WHOAMI)) {
+	//Prepare a response.
+	std::vector<Json::Value> res;
+	res.push_back(JsonParser::makeWhoAmI(props["token"].asString()));
+	std::string whoami;
+	JsonParser::serialize(res, whoami);
+
+	if (!m_broker->getConnection().send(whoami)) {
+		std::cout <<"ERROR: unable to send WHOAMI response.\n";
 		return false;
 	}
 	return true;
@@ -121,81 +85,39 @@ bool Registration::doWhoAreYou()
 
 bool Registration::doAGENTS_INFO()
 {
-	std::string AGENTS_INFO;
-	if (!m_broker->getConnection().receive(AGENTS_INFO)) {
-		NS_LOG_UNCOND( "read AGENTS_INFO error" );
+	//A single "AGENTS_INFO" message it expected
+	std::string str;
+	if (!m_broker->getConnection().receive(str)) {
+		std::cout <<"Error reading AGENTS_INFO.\n";
 		return false;
 	}
 
-	std::string type, data;
-	Json::Value root;
-	sim_mob::pckt_header packetHeader;
-	if (!sim_mob::JsonParser::parsePacketHeader(AGENTS_INFO, packetHeader,
-			root)) {
-		NS_LOG_UNCOND( "Simmobility didn't send a valid packet" );
-		return false;
-	}
-	if (!sim_mob::JsonParser::getPacketMessages(AGENTS_INFO, root)) {
+	//Parse it.
+	Json::Value props;
+	sim_mob::MessageBase msg;
+	if (!JsonParser::deserialize_single(str, "AGENTS_INFO", msg, props)) {
+		std::cout <<"Error deserializing AGENTS_INFO message.\n";
 		return false;
 	}
 
-	int i = 0;
-	msg_header messageHeader;
-	if (!sim_mob::JsonParser::parseMessageHeader(root[i], messageHeader)) {
+	//Parse it using existing functionality.
+	AgentsInfoMessage aInfo = JsonParser::parseAgentsInfo(props);
+	if (aInfo.addAgentIds.empty()) {
+		std::cout <<"ADD Agents info not found (empty).\n";
 		return false;
 	}
 
-	int res = get_message_header(AGENTS_INFO, messageHeader);
-	if (!res || messageHeader.msg_type != "AGENTS_INFO") {
-		NS_LOG_UNCOND(
-				 "Simmobility didn't send the AGENTS_INFO message"
-				<< "[" << messageHeader.msg_type << "]" );
-		return false;
-	}
-	Json::Value & curr_json = root[i];
-
-	if (!curr_json.isMember("ADD")) {
-		NS_LOG_UNCOND( "\"ADD\" Agents information not found"
-				);
-		return false;
-	}
-	if (!curr_json["ADD"].isArray()) {
-		NS_LOG_UNCOND( "Array of Agents information not found"
-				);
-		return false;
-	}
-	Json::Value add_json = curr_json["ADD"];
-	NS_LOG_UNCOND( "ADDing Agents");
-	for (unsigned int i = 0; i< add_json.size(); i++) {
-		if(!add_json[i].isMember("AGENT_ID")) {
-			NS_LOG_UNCOND("AGENT_ID is not a member");
-			continue;//actually should throw error
-		}
-		unsigned int ii = add_json[i]["AGENT_ID"].asUInt();
-		if(add_json[i].isMember("AGENT_TYPE")){
-			unsigned int type = add_json[i]["AGENT_TYPE"].asUInt();
-			NS_LOG_UNCOND(type);
-		}
-//		bool res;
-		NS_LOG_UNCOND("Getting Base Agent of Type " << m_application);
-		 //sim_mob::Agent *agentBase = sim_mob::Agent::getFactory().getPrototype(m_application, res);
-//		 if(!res){
-//			 NS_ASSERT_MSG(res,"Getting the Base Agent from Agent Factory Failed");
-//		 }
-
+	//Handle each new Agent ID
+	for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
 		//TODO: Fix this further.
 		if (m_application=="Default") {
-			sim_mob::Agent::AddAgent(ii, ns3::CreateObject<Agent>(ii, m_broker));
+			sim_mob::Agent::AddAgent(*it, ns3::CreateObject<Agent>(*it, m_broker));
 		} else if (m_application=="stk") {
-			sim_mob::Agent::AddAgent(ii, ns3::CreateObject<WFD_Agent>(ii, m_broker));
+			sim_mob::Agent::AddAgent(*it, ns3::CreateObject<WFD_Agent>(*it, m_broker));
 		} else {
 			throw std::runtime_error("Invalid m_application.");
 		}
-
-//		agent->init();
-		NS_LOG_UNCOND( "Agent " << ii << " created" );
 	}
-	NS_LOG_UNCOND( "\n");
 
 	return true;
 }
@@ -212,21 +134,19 @@ bool Registration::doAgentInit(){
 //waits for ready message
 bool Registration::doREADY() {
 	//expect to read READY message
-	std::string READY;
-	if (!m_broker->getConnection().receive(READY)) {
+	std::string str;
+	if (!m_broker->getConnection().receive(str)) {
 		return false;
 	}
 
-	msg_header messageHeader;
-	int res = get_message_header(READY, messageHeader);
-//	NS_LOG_UNCOND( "reg::doReady::received[" << messageHeader.msg_type << "]" );
-	if (!res || messageHeader.msg_type != "READY") {
-		NS_LOG_UNCOND( "Simmobility didn't send the READY message" );
+	//Parse it.
+	Json::Value props;
+	sim_mob::MessageBase msg;
+	if (!JsonParser::deserialize_single(str, "READY", msg, props)) {
+		std::cout <<"Error deserializing READY message.\n";
 		return false;
 	}
-	else{
-		NS_LOG_UNCOND( "Simmobility sent the READY message" );
-	}
+
 	return true;
 }
 
@@ -293,30 +213,45 @@ bool WFD_Registration::doRoleAssignment(){
 	return true;
 }
 
+
+
+
+
 //since we dont want tho include WFD_Group headers to serialize.h(and we dont know why!!!!)
 //we define a method here only.
-const std::string & WFD_Registration::makeGO_ClientPacket(){
-	Json::Value GoClientPacketHeader = JsonParser::createPacketHeader(
-				pckt_header("1"));
-		Json::Value GoClientSMsg = JsonParser::createMessageHeader(
-				msg_header("0", "NS3_SIMULATOR", "GOCLIENT"));
-		GoClientSMsg["ID"] = "0";
-		GoClientSMsg["TYPE"] = "NS3_SIMULATOR";
-		std::map<unsigned int, WFD_Group>::iterator it(WFD_Groups_.begin()),
-				it_end(WFD_Groups_.end());
-		Json::Value GoClientMsg;
-		//supports multi group formation
-		for(; it != it_end; it++)
-		{
-			JsonParser::makeGO_ClientArrayElement(it->second.GO, it->second.members,GoClientMsg);
-			GoClientSMsg["GROUPS"].append(GoClientMsg);
-		}
-		//no more fiels is needed
-		Json::Value packet;
-		packet["DATA"] = GoClientSMsg; //"DATA" : ["GROUPS":["GO":xxx , "CLIENTS":[aaa,bbb,ccc]], ["GO":xxx , "CLIENTS":[aaa,bbb,ccc]],["GO":xxx , "CLIENTS":[aaa,bbb,ccc]]]
-		packet["PACKET_HEADER"] = GoClientPacketHeader;
-		const std::string & msg = Json::FastWriter().write(packet);
-		return msg;
+std::string WFD_Registration::makeGO_ClientPacket(){
+	//First make the single message.
+	Json::Value res;
+	sim_mob::JsonParser::addDefaultMessageProps(res, "GOCLIENT");
+
+	//Custom properties.
+	res["ID"] = "0";
+	res["TYPE"] = "NS3_SIMULATOR";
+
+	//Multi-group formation.
+	for(std::map<unsigned int, WFD_Group>::const_iterator it=WFD_Groups_.begin(); it!=WFD_Groups_.end(); it++) {
+		Json::Value clientMsg;
+		WFD_Registration::makeGO_ClientArrayElement(it->second.GO, it->second.members, clientMsg);
+		res["GROUPS"].append(clientMsg);
+	}
+
+	//Done
+	std::string msg;
+	std::vector<Json::Value> vect;
+	vect.push_back(res);
+	sim_mob::JsonParser::serialize(vect, msg);
+	return msg;
+}
+
+
+void sim_mob::WFD_Registration::makeGO_ClientArrayElement(unsigned int go, std::vector<unsigned int> clients, Json::Value & output) 
+{
+	std::vector<unsigned int>::iterator it(clients.begin()),it_end(clients.end());
+	Json::Value & GoClientMsg = output;
+	GoClientMsg["GO"] = go;
+	for(; it != it_end; it++) {
+		GoClientMsg["CLIENTS"].append(*it);
+	}
 }
 
 
