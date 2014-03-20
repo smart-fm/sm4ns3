@@ -8,7 +8,7 @@
 #include "smb_configurator.h"
 #include <string>
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 Configurator::Configurator() {
 	// TODO Auto-generated constructor stub
@@ -22,4 +22,4 @@ Configurator::~Configurator() {
 	// TODO Auto-generated destructor stub
 }
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

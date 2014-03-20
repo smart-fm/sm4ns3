@@ -14,7 +14,7 @@ namespace ns3{
 class NodeContainer;
 class ListPositionAllocator;
 }
-namespace sim_mob {
+namespace sm4ns3 {
 
 class BaseMobility : public Configurator {
 	ns3::MobilityHelper m_mobility;
@@ -29,4 +29,4 @@ public:
 	virtual ~BaseMobility();
 };
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

@@ -11,10 +11,10 @@
 #include "smb_serializer.h"
 #include "smb_broker.h"
 
-namespace sim_mob {
+namespace sm4ns3 {
 
-//sim_mob::BaseFactory<Registration*> Registration::m_appRegFactory;
-Registration::Registration(sim_mob::Broker* broker_, std::string simmobility_address_, std::string simmobility_port_, std::string application_) :
+//sm4ns3::BaseFactory<Registration*> Registration::m_appRegFactory;
+Registration::Registration(sm4ns3::Broker* broker_, std::string simmobility_address_, std::string simmobility_port_, std::string application_) :
 	m_application(application_),
 	m_broker(broker_),
 	m_simmobility_address(simmobility_address_),
@@ -58,7 +58,7 @@ bool Registration::doWhoAreYou()
 
 	//Parse it.
 	Json::Value props;
-	sim_mob::MessageBase msg;
+	sm4ns3::MessageBase msg;
 	if (!JsonParser::deserialize_single(str, "WHOAREYOU", msg, props)) {
 		std::cout <<"Error deserializing WHOAREYOU message.\n";
 		return false;
@@ -94,7 +94,7 @@ bool Registration::doAGENTS_INFO()
 
 	//Parse it.
 	Json::Value props;
-	sim_mob::MessageBase msg;
+	sm4ns3::MessageBase msg;
 	if (!JsonParser::deserialize_single(str, "AGENTS_INFO", msg, props)) {
 		std::cout <<"Error deserializing AGENTS_INFO message.\n";
 		return false;
@@ -111,9 +111,9 @@ bool Registration::doAGENTS_INFO()
 	for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
 		//TODO: Fix this further.
 		if (m_application=="Default") {
-			sim_mob::Agent::AddAgent(*it, ns3::CreateObject<Agent>(*it, m_broker));
+			sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<Agent>(*it, m_broker));
 		} else if (m_application=="stk") {
-			sim_mob::Agent::AddAgent(*it, ns3::CreateObject<WFD_Agent>(*it, m_broker));
+			sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<WFD_Agent>(*it, m_broker));
 		} else {
 			throw std::runtime_error("Invalid m_application.");
 		}
@@ -141,7 +141,7 @@ bool Registration::doREADY() {
 
 	//Parse it.
 	Json::Value props;
-	sim_mob::MessageBase msg;
+	sm4ns3::MessageBase msg;
 	if (!JsonParser::deserialize_single(str, "READY", msg, props)) {
 		std::cout <<"Error deserializing READY message.\n";
 		return false;
@@ -168,7 +168,7 @@ bool Registration::start() {
  * ***************Used for Super Tux Kart **************
  *******************************************************/
 WFD_Registration::WFD_Registration(
-		sim_mob::Broker* broker_,
+		sm4ns3::Broker* broker_,
 		std::string simmobility_address_,
 		std::string simmobility_port_,
 		std::string application_
@@ -197,14 +197,14 @@ bool WFD_Registration::doRoleAssignment(){
 	///Feel free to stop reviewing this
 	///method if it is too complex for you.
 	boost::unordered_map<unsigned int,ns3::Ptr<Agent> >::iterator it, it_begin, it_end;
-	it = it_begin = sim_mob::Agent::getAgents().begin();
-	it_end = sim_mob::Agent::getAgents().end();
+	it = it_begin = sm4ns3::Agent::getAgents().begin();
+	it_end = sm4ns3::Agent::getAgents().end();
 	//VERY primitive way that will:
 	//1-choose the first node in the list as GO
 	//2-create ONLY one group.
 	WFD_Group wfd;
 	wfd.GO = wfd.groupId = it->second->GetAgentId();
-	for( ; it != sim_mob::Agent::getAgents().end(); it++){
+	for( ; it != sm4ns3::Agent::getAgents().end(); it++){
 		wfd.members.push_back(it->second->GetAgentId());
 		WFD_Membership[it->second->GetAgentId()] = wfd.groupId;
 	}
@@ -222,7 +222,7 @@ bool WFD_Registration::doRoleAssignment(){
 std::string WFD_Registration::makeGO_ClientPacket(){
 	//First make the single message.
 	Json::Value res;
-	sim_mob::JsonParser::addDefaultMessageProps(res, "GOCLIENT");
+	sm4ns3::JsonParser::addDefaultMessageProps(res, "GOCLIENT");
 
 	//Custom properties.
 	res["ID"] = "0";
@@ -239,12 +239,12 @@ std::string WFD_Registration::makeGO_ClientPacket(){
 	std::string msg;
 	std::vector<Json::Value> vect;
 	vect.push_back(res);
-	sim_mob::JsonParser::serialize(vect, msg);
+	sm4ns3::JsonParser::serialize(vect, msg);
 	return msg;
 }
 
 
-void sim_mob::WFD_Registration::makeGO_ClientArrayElement(unsigned int go, std::vector<unsigned int> clients, Json::Value & output) 
+void sm4ns3::WFD_Registration::makeGO_ClientArrayElement(unsigned int go, std::vector<unsigned int> clients, Json::Value & output) 
 {
 	std::vector<unsigned int>::iterator it(clients.begin()),it_end(clients.end());
 	Json::Value & GoClientMsg = output;
@@ -298,4 +298,4 @@ bool WFD_Registration::start() {
 	return true;
 }
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

@@ -7,7 +7,7 @@
 #include "smb_message_base.h"
 #include <jsoncpp/json/json.h>
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 class Broker;
 

@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 	Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue ("DsssRate1Mbps"));
 	
 	//Start up the broker.
-	sim_mob::Broker broker(host, port);
+	sm4ns3::Broker broker(host, port);
 	if(!broker.start(application)) {
 		std::cout <<"ERROR: Broker Start Failed";
 		return 1;

@@ -17,7 +17,7 @@ namespace ns3 {
 class NodeContainer;
 }
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 class BaseIP : public Configurator{
 public:
@@ -51,4 +51,4 @@ public:
 	virtual ~BaseIP();
 };
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

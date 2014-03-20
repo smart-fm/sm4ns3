@@ -9,7 +9,7 @@
 #include<string>
 
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 class Configurator {
 public:
@@ -19,4 +19,4 @@ public:
 	virtual ~Configurator();
 };
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

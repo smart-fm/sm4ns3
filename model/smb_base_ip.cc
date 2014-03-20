@@ -9,7 +9,7 @@
 #include "ns3/log.h"
 
 //#include "ns3/core-module.h"
-namespace sim_mob {
+namespace sm4ns3 {
 
 BaseIP::BaseIP()/*:m_last_ip_assignment("10.0.0.1")*/ {
 	init();
@@ -59,4 +59,4 @@ BaseIP::~BaseIP() {
 	// TODO Auto-generated destructor stub
 }
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

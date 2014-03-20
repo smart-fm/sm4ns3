@@ -19,7 +19,7 @@
 
 
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 ///Contains various callback functions, allowing other classes to interact with Brokers without requiring the entire object.
 class BrokerBase {
@@ -41,7 +41,7 @@ private:
 	std::string simmob_host;
 	std::string simmob_port;
 
-	sim_mob::Connection conn;
+	sm4ns3::Connection conn;
 
 
 	ns3::SystemMutex mutex_pause;
@@ -55,16 +55,16 @@ private:
 	//      thread-unsafe code into obvious places; otherwise, we'll have to restore the MessageQueues.
 	//
 
-	//sim_mob::MessageQueue<msg_ptr> m_incoming;
+	//sm4ns3::MessageQueue<msg_ptr> m_incoming;
 	std::vector<Json::Value> m_incoming;
 
-	//sim_mob::MessageQueue<Json::Value> m_outgoing;
+	//sm4ns3::MessageQueue<Json::Value> m_outgoing;
 	std::vector<Json::Value> m_outgoing;
 
-	sim_mob::MessageQueue<std::string> m_incoming_conf;
+	sm4ns3::MessageQueue<std::string> m_incoming_conf;
 
 
-	sim_mob::MessageFactory msgFactory;
+	sm4ns3::MessageFactory msgFactory;
 
 	//I/O needs to go in its own thread.
 	ns3::SystemThread iorun_thread;
@@ -84,7 +84,7 @@ public:
 	bool parsePacket(const std::string &input);
 	void setSimmobilityConnectionPoint(std::string,std::string);
 
-	sim_mob::Connection & getConnection();
+	sm4ns3::Connection & getConnection();
 };
 
 } //namespace

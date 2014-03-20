@@ -26,7 +26,7 @@ class NqosWifiMacHelper;
 }
 
 using namespace ns3;
-namespace sim_mob {
+namespace sm4ns3 {
 class Broker;
 //NS_LOG_COMPONENT_DEFINE ("A NAME_sadjcbsajkl");
 struct AgentConfig {
@@ -42,10 +42,10 @@ class Agent : public ns3::Object{
 public:
 	ns3::Ptr<ns3::Node> m_node; // Agent has a node
     int m_AgentId; // Agent's id
-    sim_mob::Broker* m_parent_broker;
+    sm4ns3::Broker* m_parent_broker;
     ns3::Ptr<ns3::NetDevice> m_device; // Agent has a device
 
-//    sim_mob::BaseWifi m_basic_wifi;
+//    sm4ns3::BaseWifi m_basic_wifi;
     ns3::NodeContainer nc;
     ns3::NetDeviceContainer ndc ;
     ns3::Ipv4InterfaceContainer iic;
@@ -62,27 +62,27 @@ public:
     static boost::unordered_map<unsigned int,ns3::Ptr<Agent> > m_all_agents; //<m_AgentId, Agent*>
 
     /// agent factory(the best place to keep this factory is here itself(or may be a singleton)
-//    static sim_mob::BaseFactory<Agent*> m_agentFactory;
+//    static sm4ns3::BaseFactory<Agent*> m_agentFactory;
 public:
     /// Override TypeId.
     static ns3::TypeId GetTypeId(void);
     //	constructor
-	Agent(int m_AgentId_, sim_mob::Broker* broker_);
+	Agent(int m_AgentId_, sm4ns3::Broker* broker_);
 	Agent(AgentConfig config);
 	Agent();
 	void DevRxTrace(std::string context, Ptr<const Packet> p);
 	virtual void init();
-	virtual ns3::Ptr<Agent> clone(int m_AgentId_, sim_mob::Broker* broker_);
-//	static sim_mob::BaseFactory<Agent*> &getFactory();
+	virtual ns3::Ptr<Agent> clone(int m_AgentId_, sm4ns3::Broker* broker_);
+//	static sm4ns3::BaseFactory<Agent*> &getFactory();
 	static void SetBasicNetworking(
 			const ns3::WifiHelper &wifi = ns3::WifiHelper::Default(),
 			const ns3::YansWifiPhyHelper &phy = ns3::YansWifiPhyHelper::Default(),
 			const ns3::NqosWifiMacHelper &mac = ns3::NqosWifiMacHelper::Default());
-//	void Configure(sim_mob::BaseWifi &baseWifi,
-//			sim_mob::BaseMobility &baseMobility,
-//			sim_mob::BaseIP &baseIP = m_ip);
+//	void Configure(sm4ns3::BaseWifi &baseWifi,
+//			sm4ns3::BaseMobility &baseMobility,
+//			sm4ns3::BaseIP &baseIP = m_ip);
 
-//	void Configure(sim_mob::APP_TYPE);
+//	void Configure(sm4ns3::APP_TYPE);
 ////	//returns agent's InetSocketAddress
 ////	ns3::InetSocketAddress &getISA();
 //	ns3::Ptr<ns3::Socket> & Socket();
@@ -143,7 +143,7 @@ public:
      */
     ns3::Address GetBroadcastAddress();
 
-//    sim_mob::BaseWifi & getBaseWifi();
+//    sm4ns3::BaseWifi & getBaseWifi();
     /**
      * \param agent the destination agent.
      * \param packet the packet to send.
@@ -188,12 +188,12 @@ private:
     static ns3::Ipv4AddressHelper wfd_ipAddrs;
 public:
 
-	WFD_Agent(int m_AgentId_, sim_mob::Broker* broker_);
+	WFD_Agent(int m_AgentId_, sm4ns3::Broker* broker_);
 	WFD_Agent();
 	void init();
 	AgentRole getRole();
 	void setRole(AgentRole);
-	ns3::Ptr<Agent> clone(int m_AgentId_, sim_mob::Broker* broker_);
+	ns3::Ptr<Agent> clone(int m_AgentId_, sm4ns3::Broker* broker_);
 
 	//which group are you in and which role do you have?
 	void figureOutGroup();
@@ -205,4 +205,4 @@ public:
 	static void configAll();
 };
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

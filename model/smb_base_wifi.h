@@ -13,7 +13,7 @@
 #include "ns3/yans-wifi-helper.h"
 #include "smb_configurator.h"
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 class BaseWifi : public Configurator {
     ns3::WifiHelper m_wifiHelper; // a wifi helper apply to setup vehicles Wifi
@@ -44,4 +44,4 @@ public:
 	virtual ~BaseWifi();
 };
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

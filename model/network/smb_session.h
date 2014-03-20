@@ -22,7 +22,7 @@
 #include <sstream>
 #include <vector>
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 /// The Session class provides serialization primitives on top of a socket.
 /**
@@ -241,5 +241,5 @@ private:
 
 typedef boost::shared_ptr<Session> session_ptr;
 
-} // namespace sim_mob
+} // namespace sm4ns3
 

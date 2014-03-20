@@ -4,23 +4,23 @@
 
 #include "smb_serializer.h"
 
-/*sim_mob::MSG_All_Location::MSG_All_Location(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
+/*sm4ns3::MSG_All_Location::MSG_All_Location(const Json::Value& data_, const sm4ns3::msg_header& header): Message(data_, header)
 {
 
 }
-sim_mob::MSG_All_Location::~MSG_All_Location()
+sm4ns3::MSG_All_Location::~MSG_All_Location()
 {
 }*/
 
 
-void sim_mob::HDL_All_Location::handle(const Json::Value& msg, Broker* broker) const
+void sm4ns3::HDL_All_Location::handle(const Json::Value& msg, Broker* broker) const
 {
 	//Ask the serializer for an AllLocations message.
 	AllLocationsMessage aInfo = JsonParser::parseAllLocations(msg);
 
 	//Now react accordingly.
 	boost::unordered_map<unsigned int, ns3::Ptr<Agent> >& all_agents = Agent::getAgents();
-	for (std::map<unsigned int, sim_mob::DPoint>::const_iterator it=aInfo.agentLocations.begin(); it!=aInfo.agentLocations.end(); it++) {
+	for (std::map<unsigned int, sm4ns3::DPoint>::const_iterator it=aInfo.agentLocations.begin(); it!=aInfo.agentLocations.end(); it++) {
 		if(all_agents.find(it->first) == all_agents.end()) {
 			std::cout <<"Agent id (" <<it->first << ") not found.\n";
 			continue;
@@ -37,7 +37,7 @@ void sim_mob::HDL_All_Location::handle(const Json::Value& msg, Broker* broker) c
 	}
 }
 
-sim_mob::HDL_All_Location::~HDL_All_Location() 
+sm4ns3::HDL_All_Location::~HDL_All_Location() 
 {
 }
 

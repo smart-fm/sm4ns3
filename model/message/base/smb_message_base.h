@@ -18,7 +18,7 @@
 #include <boost/shared_ptr.hpp>
 #include <jsoncpp/json/json.h>
 
-namespace sim_mob
+namespace sm4ns3
 {
 
 //New base message class; contains everything a Message is guranteed to have. 
@@ -35,7 +35,7 @@ struct MessageBase {
 
 //Forward Declaration
 class Handler;
-typedef boost::shared_ptr<sim_mob::Handler> hdlr_ptr;
+typedef boost::shared_ptr<sm4ns3::Handler> hdlr_ptr;
 
 namespace comm
 {
@@ -45,8 +45,8 @@ class Message;
 
 //This mess needs to go.
 //typedef Json::Value msg_data_t;
-//typedef sim_mob::comm::Message<msg_data_t> msg_t;
-typedef boost::shared_ptr<sim_mob::comm::Message> msg_ptr;
+//typedef sm4ns3::comm::Message<msg_data_t> msg_t;
+typedef boost::shared_ptr<sm4ns3::comm::Message> msg_ptr;
 
 namespace comm
 {
@@ -75,5 +75,5 @@ public:
 
 
 }//namespace comm
-}//namespace sim_mob
+}//namespace sm4ns3
 

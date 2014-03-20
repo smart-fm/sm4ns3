@@ -15,29 +15,29 @@
 
 using namespace boost;
 
-sim_mob::Connection::Connection(boost::asio::io_service &io_service_, BrokerBase* broker) :
+sm4ns3::Connection::Connection(boost::asio::io_service &io_service_, BrokerBase* broker) :
 	broker(broker),
 	m_io_service(io_service_)
 {
 	if (!broker) { throw std::runtime_error("Null Broker in Connection."); }
 }
 
-sim_mob::Connection::~Connection() 
+sm4ns3::Connection::~Connection() 
 {
 }
 
-bool sim_mob::Connection::start() 
+bool sm4ns3::Connection::start() 
 {
 	return true;
 }
 
-bool sim_mob::Connection::connect(std::string host, std::string port)
+bool sm4ns3::Connection::connect(std::string host, std::string port)
 {
 	boost::asio::ip::tcp::resolver m_resolver(m_io_service);
 	boost::asio::ip::tcp::resolver::query query(host, port);
 	boost::system::error_code ec;
 	boost::asio::ip::tcp::resolver::iterator it = m_resolver.resolve(query, ec);
-	m_session.reset(new sim_mob::Session(m_io_service));
+	m_session.reset(new sm4ns3::Session(m_io_service));
 
 	//sync version for reference, just in case
 	m_resolver.resolve(query,ec);
@@ -55,14 +55,14 @@ bool sim_mob::Connection::connect(std::string host, std::string port)
 
 
 //reads into input
-bool sim_mob::Connection::receive(std::string &input) 
+bool sm4ns3::Connection::receive(std::string &input) 
 {
 	bool res = m_session->read(input);
 
 	return res;
 }
 
-void sim_mob::Connection::async_receive() 
+void sm4ns3::Connection::async_receive() 
 {
 	if(!is_open())
 	{
@@ -74,7 +74,7 @@ void sim_mob::Connection::async_receive()
 					boost::asio::placeholders::error));
 }
 
-void sim_mob::Connection::readHandler(const boost::system::error_code& e) 
+void sm4ns3::Connection::readHandler(const boost::system::error_code& e) 
 {
 	if (e) {
 		NS_LOG_UNCOND( "Read Fail [" << e.message() << "]" );
@@ -86,21 +86,21 @@ void sim_mob::Connection::readHandler(const boost::system::error_code& e)
 	async_receive();
 }
 
-bool sim_mob::Connection::send(std::string str) 
+bool sm4ns3::Connection::send(std::string str) 
 {
 	return m_session->write(str);
 }
 
-void sim_mob::Connection::async_send(std::string str) 
+void sm4ns3::Connection::async_send(std::string str) 
 {
 	m_session->write(str);
 }
 
-void sim_mob::Connection::sendHandler(const boost::system::error_code& e) 
+void sm4ns3::Connection::sendHandler(const boost::system::error_code& e) 
 {
 }
 
-bool sim_mob::Connection::is_open() 
+bool sm4ns3::Connection::is_open() 
 {
 	return m_session->socket().is_open();
 }

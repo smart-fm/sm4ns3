@@ -14,7 +14,7 @@
 #include "smb_rr_casts.h"
 
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 
 /**
@@ -41,19 +41,19 @@ public:
 	static bool parseJSON(const std::string& input, Json::Value &output);
 
 	//Deserialize common properties associated with all messages.
-	static sim_mob::MessageBase parseMessageBase(const Json::Value& msg);
+	static sm4ns3::MessageBase parseMessageBase(const Json::Value& msg);
 
 	//Deserialize an AGENTS_INFO message. 
-	static sim_mob::AgentsInfoMessage parseAgentsInfo(const Json::Value& msg);
+	static sm4ns3::AgentsInfoMessage parseAgentsInfo(const Json::Value& msg);
 
 	//Deserialize an ALL_LOCATIONS message.
-	static sim_mob::AllLocationsMessage parseAllLocations(const Json::Value& msg);
+	static sm4ns3::AllLocationsMessage parseAllLocations(const Json::Value& msg);
 
 	//Deserialize a UNICAST message.
-	static sim_mob::roadrunner::UnicastMessage parseUnicast(const Json::Value& msg);
+	static sm4ns3::UnicastMessage parseUnicast(const Json::Value& msg);
 
 	//Deserialize a MULTICAST message.
-	static sim_mob::roadrunner::MulticastMessage parseMulticast(const Json::Value& msg);
+	static sm4ns3::MulticastMessage parseMulticast(const Json::Value& msg);
 
 	//Add default MessageBase properties to an existing Json-encoded message.
 	//(Normally not called externally).

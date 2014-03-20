@@ -9,7 +9,7 @@
 #include "ns3/position-allocator.h"
 #include "ns3/node-container.h"
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 BaseMobility::BaseMobility() {
 	// TODO Auto-generated constructor stub
@@ -39,4 +39,4 @@ BaseMobility::~BaseMobility() {
 	// TODO Auto-generated destructor stub
 }
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

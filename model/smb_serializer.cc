@@ -16,7 +16,7 @@ std::string size_to_string(size_t dat) {
 } //End anon namespace
 
 
-bool sim_mob::JsonParser::serialize(const std::vector<Json::Value>& messages, std::string& res)
+bool sm4ns3::JsonParser::serialize(const std::vector<Json::Value>& messages, std::string& res)
 {
 	//Build the header.
 	Json::Value header;
@@ -36,7 +36,7 @@ bool sim_mob::JsonParser::serialize(const std::vector<Json::Value>& messages, st
 	return true;
 }
 
-bool sim_mob::JsonParser::deserialize(const std::string& msgStr, std::vector<Json::Value>& res)
+bool sm4ns3::JsonParser::deserialize(const std::string& msgStr, std::vector<Json::Value>& res)
 {
 	//Parse the message into a Json object.
 	Json::Value root; 
@@ -66,7 +66,7 @@ bool sim_mob::JsonParser::deserialize(const std::string& msgStr, std::vector<Jso
 	return true;
 }
 
-bool sim_mob::JsonParser::deserialize_single(const std::string& msgStr, const std::string& expectedType, sim_mob::MessageBase& resMsg, Json::Value& remProps)
+bool sm4ns3::JsonParser::deserialize_single(const std::string& msgStr, const std::string& expectedType, sm4ns3::MessageBase& resMsg, Json::Value& remProps)
 {
 	std::vector<Json::Value> msgs;
 	if (!JsonParser::deserialize(msgStr, msgs)) {
@@ -94,7 +94,7 @@ bool sim_mob::JsonParser::deserialize_single(const std::string& msgStr, const st
 }
 
 
-bool sim_mob::JsonParser::parseJSON(const std::string& input, Json::Value &output) 
+bool sm4ns3::JsonParser::parseJSON(const std::string& input, Json::Value &output) 
 {
 	Json::Reader reader;
 	bool parsedSuccess = reader.parse(input, output, false);
@@ -106,14 +106,14 @@ bool sim_mob::JsonParser::parseJSON(const std::string& input, Json::Value &outpu
 }
 
 
-sim_mob::MessageBase sim_mob::JsonParser::parseMessageBase(const Json::Value& msg)
+sm4ns3::MessageBase sm4ns3::JsonParser::parseMessageBase(const Json::Value& msg)
 {
 	//Common properties.
 	if (!(msg.isMember("SENDER") && msg.isMember("SENDER_TYPE") && msg.isMember("MESSAGE_TYPE") && msg.isMember("MESSAGE_CAT"))) {
 		throw std::runtime_error("Base message is missing some required parameters."); 
 	}
 
-	sim_mob::MessageBase res;
+	sm4ns3::MessageBase res;
 	res.sender_id = msg["SENDER"].asString();
 	res.sender_type = msg["SENDER_TYPE"].asString();
 	res.msg_type = msg["MESSAGE_TYPE"].asString();
@@ -122,9 +122,9 @@ sim_mob::MessageBase sim_mob::JsonParser::parseMessageBase(const Json::Value& ms
 }
 
 
-sim_mob::AgentsInfoMessage sim_mob::JsonParser::parseAgentsInfo(const Json::Value& msg)
+sm4ns3::AgentsInfoMessage sm4ns3::JsonParser::parseAgentsInfo(const Json::Value& msg)
 {
-	sim_mob::AgentsInfoMessage res(JsonParser::parseMessageBase(msg));
+	sm4ns3::AgentsInfoMessage res(JsonParser::parseMessageBase(msg));
 
 	//Add?
 	if (msg.isMember("ADD")) {
@@ -149,9 +149,9 @@ sim_mob::AgentsInfoMessage sim_mob::JsonParser::parseAgentsInfo(const Json::Valu
 
 
 
-sim_mob::AllLocationsMessage sim_mob::JsonParser::parseAllLocations(const Json::Value& msg)
+sm4ns3::AllLocationsMessage sm4ns3::JsonParser::parseAllLocations(const Json::Value& msg)
 {
-	sim_mob::AllLocationsMessage res(JsonParser::parseMessageBase(msg));
+	sm4ns3::AllLocationsMessage res(JsonParser::parseMessageBase(msg));
 	if (!msg.isMember("LOCATIONS")) { throw std::runtime_error("Badly formatted AllLocations message [1]."); }
 
 	//Parse each location into our map.
@@ -172,9 +172,9 @@ sim_mob::AllLocationsMessage sim_mob::JsonParser::parseAllLocations(const Json::
 }
 
 
-sim_mob::roadrunner::UnicastMessage sim_mob::JsonParser::parseUnicast(const Json::Value& msg)
+sm4ns3::UnicastMessage sm4ns3::JsonParser::parseUnicast(const Json::Value& msg)
 {
-	sim_mob::roadrunner::UnicastMessage res(JsonParser::parseMessageBase(msg));
+	sm4ns3::UnicastMessage res(JsonParser::parseMessageBase(msg));
 	if (!msg.isMember("RECEIVER")) { throw std::runtime_error("Badly formatted Unicast message."); }
 
 	//Fairly simple.
@@ -183,9 +183,9 @@ sim_mob::roadrunner::UnicastMessage sim_mob::JsonParser::parseUnicast(const Json
 }
 
 
-sim_mob::roadrunner::MulticastMessage sim_mob::JsonParser::parseMulticast(const Json::Value& msg)
+sm4ns3::MulticastMessage sm4ns3::JsonParser::parseMulticast(const Json::Value& msg)
 {
-	sim_mob::roadrunner::MulticastMessage res(JsonParser::parseMessageBase(msg));
+	sm4ns3::MulticastMessage res(JsonParser::parseMessageBase(msg));
 	if (!(msg.isMember("SENDING_AGENT") && msg.isMember("RECIPIENTS") && msg.isMember("DATA"))) { 
 		throw std::runtime_error("Badly formatted Multicast message."); 
 	}
@@ -202,7 +202,7 @@ sim_mob::roadrunner::MulticastMessage sim_mob::JsonParser::parseMulticast(const 
 
 
 
-void sim_mob::JsonParser::addDefaultMessageProps(Json::Value& msg, const std::string& msgType)
+void sm4ns3::JsonParser::addDefaultMessageProps(Json::Value& msg, const std::string& msgType)
 {
 	msg["SENDER"] = "0";
 	msg["SENDER_TYPE"] = "NS3_SIMULATOR";
@@ -211,7 +211,7 @@ void sim_mob::JsonParser::addDefaultMessageProps(Json::Value& msg, const std::st
 }
 
 
-Json::Value sim_mob::JsonParser::makeWhoAmI(const std::string& token) 
+Json::Value sm4ns3::JsonParser::makeWhoAmI(const std::string& token) 
 {
 	Json::Value res;
 	addDefaultMessageProps(res, "WHOAMI");
@@ -225,7 +225,7 @@ Json::Value sim_mob::JsonParser::makeWhoAmI(const std::string& token)
 	return res;
 }
 
-Json::Value sim_mob::JsonParser::makeClientDone() 
+Json::Value sm4ns3::JsonParser::makeClientDone() 
 {
 	Json::Value res;
 	addDefaultMessageProps(res, "CLIENT_MESSAGES_DONE");

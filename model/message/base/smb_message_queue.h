@@ -14,7 +14,7 @@
 
 using namespace boost;
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 template<class T>
 class MessageQueue {
@@ -75,4 +75,4 @@ MessageQueue<T>::MessageQueue() {
 
 }
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

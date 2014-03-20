@@ -11,7 +11,7 @@
 #include "ns3/wifi-module.h"
 #include "ns3/olsr-helper.h"
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 BaseWifi temp;
 //todo: for now and for the reason I dont know yet, I need to initialize like this otherwise m_wifi will not be initialized properly
@@ -19,7 +19,7 @@ BaseWifi Agent::m_wifi = temp;
 BaseMobility Agent::m_mobility;
 BaseIP Agent::m_ip;
 boost::unordered_map<unsigned int, ns3::Ptr<Agent> > Agent::m_all_agents;
-//sim_mob::BaseFactory<Agent*> Agent::m_agentFactory;
+//sm4ns3::BaseFactory<Agent*> Agent::m_agentFactory;
 
 ns3::Ipv4Address
 GetPacketSource(Ptr<Packet> packet)
@@ -70,7 +70,7 @@ GetPacketSource(Ptr<Packet> packet)
  * ************************************************************************************
  */
 ns3::TypeId Agent::GetTypeId(void) {
-    static ns3::TypeId tid = ns3::TypeId("sim_mob::Agent")
+    static ns3::TypeId tid = ns3::TypeId("sm4ns3::Agent")
             .SetParent<ns3::Object > ()
             .AddConstructor<Agent > ()
             ;
@@ -89,7 +89,7 @@ ns3::Ptr<Agent>& Agent::getAgent(unsigned int id){
 	return Agent::m_all_agents[id];
 }
 
-Agent::Agent(int m_AgentId_, sim_mob::Broker* broker_):m_AgentId(m_AgentId_), m_parent_broker(broker_) {
+Agent::Agent(int m_AgentId_, sm4ns3::Broker* broker_):m_AgentId(m_AgentId_), m_parent_broker(broker_) {
 	NS_LOG_UNCOND("Inside Agent::Agent(2)");
 	m_isa = 0;
 //	Agent();
@@ -126,16 +126,16 @@ void Agent::init()
 	Bind();
 }
 
-ns3::Ptr<Agent> Agent::clone(int m_AgentId_ , sim_mob::Broker* broker_){
+ns3::Ptr<Agent> Agent::clone(int m_AgentId_ , sm4ns3::Broker* broker_){
 	NS_LOG_UNCOND("Inside Agent::clone" << this);
 	return ns3::CreateObject<Agent>(m_AgentId_,broker_);
 }
-//ns3::Ptr<Agent> Agent::clone(int m_AgentId_ id, sim_mob::Broker* broker_){
+//ns3::Ptr<Agent> Agent::clone(int m_AgentId_ id, sm4ns3::Broker* broker_){
 //	return ns3::CreateObject<Agent>(id,broker_);
 //}
 
 
-/*sim_mob::BaseFactory<Agent*> &Agent::getFactory(){
+/*sm4ns3::BaseFactory<Agent*> &Agent::getFactory(){
 	return m_agentFactory;
 }*/
 
@@ -266,8 +266,8 @@ int Agent::SendTo(ns3::Ptr<Agent> agent, ns3::Ptr<ns3::Packet> packet)
 
 	ns3::InetSocketAddress remote = ns3::InetSocketAddress (agent->GetAddress(), 80);
 	m_socket->Connect(remote);
-	NS_LOG_UNCOND ("Sending packer[" << sim_mob::Broker::global_pckt_cnt << "] from Address[" << m_AgentId << " : " << GetAddress() << "] to remote location[" << agent->GetAgentId() << " : "  << agent->GetAddress() << "]");
-	sim_mob::Broker::global_pckt_cnt++;
+	NS_LOG_UNCOND ("Sending packer[" << sm4ns3::Broker::global_pckt_cnt << "] from Address[" << m_AgentId << " : " << GetAddress() << "] to remote location[" << agent->GetAgentId() << " : "  << agent->GetAddress() << "]");
+	sm4ns3::Broker::global_pckt_cnt++;
 
 	int res = m_socket->Send(packet);
    return res;
@@ -303,7 +303,7 @@ void WFD_Agent::setRole(AgentRole role_){
 	role = role_;
 }
 
-WFD_Agent::WFD_Agent(int m_AgentId_, sim_mob::Broker* broker_):Agent(m_AgentId_,broker_){
+WFD_Agent::WFD_Agent(int m_AgentId_, sm4ns3::Broker* broker_):Agent(m_AgentId_,broker_){
 	NS_LOG_UNCOND("Inside WFD_Agent::WFD_Agent(2)");
 }
 WFD_Agent::WFD_Agent():Agent(){
@@ -331,7 +331,7 @@ void WFD_Agent::init(){
 	wfd_nc.Add(m_wfd_node);
 
 }
-ns3::Ptr<Agent> WFD_Agent::clone(int m_AgentId_ , sim_mob::Broker* broker_){
+ns3::Ptr<Agent> WFD_Agent::clone(int m_AgentId_ , sm4ns3::Broker* broker_){
 
 //	NS_LOG_UNCOND("Inside WFD_Agent::clone" << this);
 	return ns3::CreateObject<WFD_Agent>(m_AgentId_,broker_);
@@ -412,6 +412,6 @@ void WFD_Agent::configAll(){
 	    }
 
 }
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */
 
 

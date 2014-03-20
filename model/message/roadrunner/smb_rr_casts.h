@@ -5,15 +5,14 @@
 
 #include <vector>
 
-namespace sim_mob {
-namespace roadrunner {
+namespace sm4ns3 {
 
-struct UnicastMessage : public sim_mob::MessageBase {
+struct UnicastMessage : public sm4ns3::MessageBase {
 	std::string receiver; ///<Who to send this to.
 	UnicastMessage(const MessageBase& base) : MessageBase(base) {}
 };
 
-struct MulticastMessage : public sim_mob::MessageBase {
+struct MulticastMessage : public sm4ns3::MessageBase {
 	unsigned int sendingAgent;
 	std::vector<unsigned int> recipients;
 	std::string msgData;
@@ -21,10 +20,10 @@ struct MulticastMessage : public sim_mob::MessageBase {
 };
 
 
-/*class MSG_UNICAST : public sim_mob::comm::Message {
+/*class MSG_UNICAST : public sm4ns3::comm::Message {
 public:
 	Handler * newHandler();
-	MSG_UNICAST(const Json::Value& data_, const sim_mob::msg_header& header);
+	MSG_UNICAST(const Json::Value& data_, const sm4ns3::msg_header& header);
 };*/
 
 class HDL_UNICAST : public Handler {
@@ -32,10 +31,10 @@ public:
 	virtual void handle(const Json::Value& msg, Broker*) const;
 };
 
-/*class MSG_MULTICAST : public sim_mob::comm::Message {
+/*class MSG_MULTICAST : public sm4ns3::comm::Message {
 public:
 	Handler * newHandler();
-	MSG_MULTICAST(const Json::Value& data_, const sim_mob::msg_header& header);
+	MSG_MULTICAST(const Json::Value& data_, const sm4ns3::msg_header& header);
 };*/
 
 class HDL_MULTICAST : public Handler {
@@ -44,5 +43,5 @@ public:
 };
 
 
-}}
+}
 

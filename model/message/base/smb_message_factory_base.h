@@ -13,7 +13,7 @@
 
 #include "smb_message_base.h"
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 
 class MessageFactory {
@@ -33,18 +33,18 @@ public:
 	~MessageFactory();
 
 	//Turn an input string into a list of Json-formatted messages
-//	bool createMessage(const std::string&, std::vector<sim_mob::msg_ptr>&);
+//	bool createMessage(const std::string&, std::vector<sm4ns3::msg_ptr>&);
 
 	//Retrieve a message handler for a given message type.
-	const sim_mob::Handler* getHandler(const std::string& msgType);
+	const sm4ns3::Handler* getHandler(const std::string& msgType);
 
 private:
 	std::map<std::string, MessageType> MessageMap;
-	std::map<MessageType, sim_mob::Handler*> HandlerMap;
+	std::map<MessageType, sm4ns3::Handler*> HandlerMap;
 
 public:
 	//Make a single message from its Json representation.
-	//bool createSingleMessage(const Json::Value&, sim_mob::msg_ptr&);
+	//bool createSingleMessage(const Json::Value&, sm4ns3::msg_ptr&);
 };
 
 }

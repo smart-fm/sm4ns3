@@ -10,7 +10,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 
-namespace sim_mob {
+namespace sm4ns3 {
 //Forward Declaration
 struct msg_header;
 class BrokerBase;
@@ -20,7 +20,7 @@ class Connection {
 private:
 	BrokerBase* broker;
 	boost::asio::io_service &m_io_service;
-	sim_mob::session_ptr m_session;
+	sm4ns3::session_ptr m_session;
 	std::string incomingMessage;
 
 public:

@@ -11,7 +11,7 @@
 #include "ns3/string.h"
 #include "ns3/log.h"
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 BaseWifi::BaseWifi() {
 //	NS_LOG_UNCOND("inside BaseWifi constructor");
@@ -149,4 +149,4 @@ BaseWifi::~BaseWifi() {
 	// TODO Auto-generated destructor stub
 }
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

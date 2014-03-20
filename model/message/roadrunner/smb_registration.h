@@ -9,21 +9,21 @@
 #include <iostream>
 #include <boost/shared_ptr.hpp>
 
-namespace sim_mob {
+namespace sm4ns3 {
 //Forward declaration
 class Connection;
 struct msg_header;
 class Broker;
 
 class Registration {
-//	static sim_mob::BaseFactory<Registration*> m_appRegFactory;
+//	static sm4ns3::BaseFactory<Registration*> m_appRegFactory;
 protected:
 	std::string m_application;
-	sim_mob::Broker* m_broker;
+	sm4ns3::Broker* m_broker;
 	std::string m_simmobility_address;
 	std::string m_simmobility_port;
 public:
-	Registration(sim_mob::Broker* broker_, std::string simmobility_address_, std::string simmobility_port_, std::string application = "Default");
+	Registration(sm4ns3::Broker* broker_, std::string simmobility_address_, std::string simmobility_port_, std::string application = "Default");
 	virtual ~Registration();
 	virtual Registration * clone()const;
 	bool doConnect();
@@ -68,7 +68,7 @@ class WFD_Registration : public Registration {
 	static void makeGO_ClientArrayElement(unsigned int go, std::vector<unsigned int> clients, Json::Value & output);
 
 public:
-	WFD_Registration(sim_mob::Broker*,
+	WFD_Registration(sm4ns3::Broker*,
 			std::string simmobility_address_,
 			std::string simmobility_port_, std::string application_ = "stk");
 	virtual ~WFD_Registration();
@@ -88,4 +88,4 @@ public:
 	Registration * clone()const;
 };
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

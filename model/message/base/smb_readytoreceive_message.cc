@@ -6,11 +6,11 @@
  */
 
 #include "smb_readytoreceive_message.h"
-namespace sim_mob {
+namespace sm4ns3 {
 class Handler;
 
 /*class HDL_CLIENTDONE;
-MSG_READY_TO_RECEIVE::MSG_READY_TO_RECEIVE(const Json::Value& data_, const sim_mob::msg_header& header): Message(data_, header)
+MSG_READY_TO_RECEIVE::MSG_READY_TO_RECEIVE(const Json::Value& data_, const sm4ns3::msg_header& header): Message(data_, header)
 {
 
 }*/
@@ -23,7 +23,7 @@ MSG_READY_TO_RECEIVE::MSG_READY_TO_RECEIVE(const Json::Value& data_, const sim_m
 {
 	return 0;
 }*/
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */
 
 
 

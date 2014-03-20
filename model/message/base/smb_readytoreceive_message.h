@@ -10,14 +10,14 @@
 #include "smb_message_base.h"
 #include "smb_message_handler_base.h"
 
-namespace sim_mob {
+namespace sm4ns3 {
 
-/*class MSG_READY_TO_RECEIVE : public sim_mob::comm::Message {
+/*class MSG_READY_TO_RECEIVE : public sm4ns3::comm::Message {
 	//...
 public:
 	Handler * newHandler();
-	MSG_READY_TO_RECEIVE(const Json::Value& data_, const sim_mob::msg_header& header);
+	MSG_READY_TO_RECEIVE(const Json::Value& data_, const sm4ns3::msg_header& header);
 //	MSG_READY_TO_RECEIVE();
 };*/
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

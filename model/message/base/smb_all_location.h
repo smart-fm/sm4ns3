@@ -12,7 +12,7 @@
 
 #include <map>
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 //TODO: This might need to go somewhere else.
 struct DPoint {
@@ -22,18 +22,18 @@ struct DPoint {
 };
 
 
-struct AllLocationsMessage : public sim_mob::MessageBase {
+struct AllLocationsMessage : public sm4ns3::MessageBase {
 	std::map<unsigned int, DPoint> agentLocations; ///<Maps agentID=>(x,y) updates for locations.
 	AllLocationsMessage(const MessageBase& base) : MessageBase(base) {}
 };
 
 
 
-/*class MSG_All_Location : public sim_mob::comm::Message {
+/*class MSG_All_Location : public sm4ns3::comm::Message {
 	//...
 public:
 //	Handler * newHandler();
-	MSG_All_Location(const Json::Value& data_, const sim_mob::msg_header& header);
+	MSG_All_Location(const Json::Value& data_, const sm4ns3::msg_header& header);
 //	MSG_All_Location();
 	virtual ~MSG_All_Location();
 };*/
@@ -45,4 +45,4 @@ public:
 	virtual ~HDL_All_Location();
 };
 
-} /* namespace sim_mob */
+} /* namespace sm4ns3 */

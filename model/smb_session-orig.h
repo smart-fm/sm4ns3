@@ -8,7 +8,7 @@
 #include <sstream>
 #include <vector>
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 /// The session class provides serialization primitives on top of a socket.
 /**
@@ -205,5 +205,5 @@ private:
 	std::vector<char> inbound_data_;
 };
 
-} // namespace sim_mob
+} // namespace sm4ns3
 

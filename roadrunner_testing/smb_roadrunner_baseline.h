@@ -10,9 +10,9 @@
 
 #include "smb_broker.h"
 
-namespace sim_mob {
+namespace sm4ns3 {
 
-class RoadRunnerBaseLine : sim_mob::Broker {
+class RoadRunnerBaseLine : sm4ns3::Broker {
 	enum messageType{
 		MULTICAST,
 		ADD,

@@ -5,14 +5,14 @@
 #include <boost/lexical_cast.hpp>
 
 
-sim_mob::RoadRunnerBaseLine::RoadRunnerBaseLine(){
+sm4ns3::RoadRunnerBaseLine::RoadRunnerBaseLine(){
 	MessageMap = boost::assign::map_list_of
 			("MULTICAST", MULTICAST)
 			("add_agent", RoadRunnerBaseLine::ADD)
 			("update_agent", RoadRunnerBaseLine::UPDATE);
 }
 
-void sim_mob::RoadRunnerBaseLine::parse() {
+void sm4ns3::RoadRunnerBaseLine::parse() {
 	std::string line;
 	while (1/*std::getline(infile, line)*/) {
 
@@ -34,14 +34,14 @@ void sim_mob::RoadRunnerBaseLine::parse() {
 }
 
 
-bool sim_mob::RoadRunnerBaseLine::start(std::string fileName){
+bool sm4ns3::RoadRunnerBaseLine::start(std::string fileName){
 	//step-1 open file
 	infile.open(fileName.c_str(), std::ifstream::in);
 	//step-2 schedule now(tick 0)
 	return true;
 }
 
-void sim_mob::RoadRunnerBaseLine::pause(){
+void sm4ns3::RoadRunnerBaseLine::pause(){
 	//step-1 read line and parse(until the next time tick arrives)-|
 	//step-2 put the parses into queue-----------------------------|
 	//step-3 process queue

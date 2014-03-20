@@ -19,7 +19,7 @@
 using std::string;
 using namespace ns3;
 
-namespace sim_mob {
+namespace sm4ns3 {
 
 unsigned int Broker::m_global_tick;
 unsigned int Broker::global_pckt_cnt;
@@ -66,11 +66,11 @@ bool Broker::start(std::string application)
 	//bool res;
 
 	//TODO: Clean this up further
-	sim_mob::Registration* registration = NULL;
+	sm4ns3::Registration* registration = NULL;
 	if (application=="Default") {
-		registration = new sim_mob::Registration(this, simmob_host, simmob_port);
+		registration = new sm4ns3::Registration(this, simmob_host, simmob_port);
 	} else if (application=="stk") {
-		registration = new sim_mob::WFD_Registration(this, simmob_host, simmob_port);
+		registration = new sm4ns3::WFD_Registration(this, simmob_host, simmob_port);
 	} else {
 		throw std::runtime_error("Unknown application.");
 	}
@@ -184,7 +184,7 @@ void Broker::processIncoming()
 		}
 
 		//Get the handler, let it parse its own expected message type.
-		const sim_mob::Handler* handler = msgFactory.getHandler((*it)["MESSAGE_TYPE"].asString());
+		const sm4ns3::Handler* handler = msgFactory.getHandler((*it)["MESSAGE_TYPE"].asString());
 		if (handler) {
 			handler->handle(*it, this);
 		} else {
@@ -248,7 +248,7 @@ void Broker::setSimmobilityConnectionPoint(std::string simmobility_address, std:
 	simmob_port = simmobility_port;
 }
 
-sim_mob::Connection & Broker::getConnection(){
+sm4ns3::Connection & Broker::getConnection(){
 	return conn;
 }
 

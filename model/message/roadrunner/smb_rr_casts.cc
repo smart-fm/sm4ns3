@@ -5,13 +5,8 @@
 #include "smb_broker.h"
 #include "smb_serializer.h"
 
-namespace sim_mob {
-class Handler;
-} //End namespace sim_mob
 
-
-
-void sim_mob::roadrunner::HDL_UNICAST::handle(const Json::Value& msg, Broker* broker) const
+void sm4ns3::HDL_UNICAST::handle(const Json::Value& msg, Broker* broker) const
 {
 	//Ask the serializer for a Unicast message.
 	UnicastMessage ucMsg = JsonParser::parseUnicast(msg);
@@ -26,7 +21,7 @@ void sim_mob::roadrunner::HDL_UNICAST::handle(const Json::Value& msg, Broker* br
 	//TODO: was this ever implemented? ~Seth
 }
 
-void sim_mob::roadrunner::HDL_MULTICAST::handle(const Json::Value& msg, Broker* broker) const
+void sm4ns3::HDL_MULTICAST::handle(const Json::Value& msg, Broker* broker) const
 {
 	//Ask the serializer for a Multicast message.
 	MulticastMessage mcMsg = JsonParser::parseMulticast(msg);
@@ -46,7 +41,7 @@ void sim_mob::roadrunner::HDL_MULTICAST::handle(const Json::Value& msg, Broker* 
 	res["MULTICAST_DATA"] = mcMsg.msgData;
 
 	//Retrieve the sending agent.
-	ns3::Ptr<Agent> sending_agent = sim_mob::Agent::getAgent(res["SENDING_AGENT"].asUInt());
+	ns3::Ptr<Agent> sending_agent = sm4ns3::Agent::getAgent(res["SENDING_AGENT"].asUInt());
 	if (!sending_agent) {
 		std::cout <<"Sending agent is invalid.\n";
 		return;
@@ -60,7 +55,7 @@ void sim_mob::roadrunner::HDL_MULTICAST::handle(const Json::Value& msg, Broker* 
 		res["TICK_SENT"] = broker->m_global_tick;
 
 		//Retrieve the current recipient.
-		ns3::Ptr<Agent> receiving_agent = sim_mob::Agent::getAgent(*it);
+		ns3::Ptr<Agent> receiving_agent = sm4ns3::Agent::getAgent(*it);
 		if (!receiving_agent) {
 			std::cout <<"Receiving agent is invalid.\n";
 			continue;
