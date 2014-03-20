@@ -1,25 +1,15 @@
-/*
- * BaseMobility.cc
- *
- *  Created on: Aug 6, 2013
- *      Author: vahid
- */
+//Copyright (c) 2014 Singapore-MIT Alliance for Research and Technology
+//Licensed under the terms of the MIT License, as described in the file:
+//   license.txt   (http://opensource.org/licenses/MIT)
 
 #include "smb_base_mobility.h"
 #include "ns3/position-allocator.h"
 #include "ns3/node-container.h"
 
-namespace sm4ns3 {
-
-BaseMobility::BaseMobility() {
-	// TODO Auto-generated constructor stub
-
-}
-
-void BaseMobility::init() {
+void sm4ns3::BaseMobility::init() 
+{
 	  // Note that with FixedRssLossModel, the positions below are not
 	  // used for received signal strength.
-
 //	  positionAlloc = ns3::CreateObject<ns3::ListPositionAllocator> ();
 //	  positionAlloc->Add (ns3::Vector (0.0, 0.0, 0.0));
 //	  positionAlloc->Add (ns3::Vector (5.0, 0.0, 0.0));
@@ -27,16 +17,9 @@ void BaseMobility::init() {
 //	  m_mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
 }
-void BaseMobility::configure(){
 
-}
-
-void BaseMobility::Install(ns3::NodeContainer &nc) {
+void sm4ns3::BaseMobility::Install(ns3::NodeContainer &nc) 
+{
 	m_mobility.Install (nc);
 }
 
-BaseMobility::~BaseMobility() {
-	// TODO Auto-generated destructor stub
-}
-
-} /* namespace sm4ns3 */

@@ -13,13 +13,12 @@ def build(bld):
     
     module.source = [
         'model/smb_broker.cc',
-        'model/message/roadrunner/smb_registration.cc',
+        'model/network/registration.cc',
         'model/network/smb_connection.cc',
         'model/smb_agent.cc',
         'model/smb_base_wifi.cc',
         'model/smb_base_mobility.cc',
         'model/smb_base_ip.cc',
-        'model/smb_configurator.cc',
         'model/message/handlers.cc',
         'model/message/serialize.cc',
         'roadrunner_testing/smb_roadrunner_baseline.cc',
@@ -34,13 +33,12 @@ def build(bld):
     headers.module = 'sm4ns3'
     headers.source = [
         'model/smb_broker.h',
-        'model/message/roadrunner/smb_registration.h',
+        'model/network/registration.h',
         'model/network/smb_connection.h',
         'model/smb_agent.h',
         'model/smb_base_wifi.h',
         'model/smb_base_mobility.h',
         'model/smb_base_ip.h',
-        'model/smb_configurator.h',
         'model/network/smb_session.h',
         'model/message/message_base.h',
         'model/message/messages.h',

@@ -4,7 +4,7 @@
 
 #include "smb_broker.h"
 #include "serialize.h"
-#include "smb_registration.h"
+#include "registration.h"
 #include "handler_base.h"
 
 #include "ns3/config.h"

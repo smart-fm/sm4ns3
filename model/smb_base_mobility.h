@@ -1,32 +1,27 @@
-/*
- * BaseMobility.h
- *
- *  Created on: Aug 6, 2013
- *      Author: vahid
- */
+//Copyright (c) 2014 Singapore-MIT Alliance for Research and Technology
+//Licensed under the terms of the MIT License, as described in the file:
+//   license.txt   (http://opensource.org/licenses/MIT)
 
 #pragma once
 
 #include "ns3/mobility-helper.h"
-#include "smb_configurator.h"
 
-namespace ns3{
+namespace ns3 {
 class NodeContainer;
 class ListPositionAllocator;
-}
+} //End namespace ns3
+
+
 namespace sm4ns3 {
-
-class BaseMobility : public Configurator {
-	ns3::MobilityHelper m_mobility;
-	 ns3::Ptr<ns3::ListPositionAllocator> positionAlloc ;
+class BaseMobility  {
 public:
-	BaseMobility();
-
 	void init();
-	virtual void configure();
-
 	void Install(ns3::NodeContainer &nc);
-	virtual ~BaseMobility();
+
+private:
+	ns3::MobilityHelper m_mobility;
+	ns3::Ptr<ns3::ListPositionAllocator> positionAlloc;
 };
 
-} /* namespace sm4ns3 */
+}
+
