@@ -4,10 +4,11 @@
 
 #pragma once
 
-#include "smb_message_factory_base.h"
-
 #include <iostream>
 #include <boost/shared_ptr.hpp>
+#include <jsoncpp/json/json.h>
+
+#include "smb_message_factory_base.h"
 
 namespace sm4ns3 {
 //Forward declaration

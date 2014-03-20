@@ -8,10 +8,8 @@
 #include <jsoncpp/json/json.h>
 
 #include "ns3/log.h"
-#include "smb_agents_info.h"
-#include "smb_all_location.h"
-#include "smb_message_base.h"
-#include "smb_rr_casts.h"
+#include "message_base.h"
+#include "messages.h"
 
 
 namespace sm4ns3 {
@@ -41,19 +39,19 @@ public:
 	static bool parseJSON(const std::string& input, Json::Value &output);
 
 	//Deserialize common properties associated with all messages.
-	static sm4ns3::MessageBase parseMessageBase(const Json::Value& msg);
+	static MessageBase parseMessageBase(const Json::Value& msg);
 
 	//Deserialize an AGENTS_INFO message. 
-	static sm4ns3::AgentsInfoMessage parseAgentsInfo(const Json::Value& msg);
+	static AgentsInfoMessage parseAgentsInfo(const Json::Value& msg);
 
 	//Deserialize an ALL_LOCATIONS message.
-	static sm4ns3::AllLocationsMessage parseAllLocations(const Json::Value& msg);
+	static AllLocationsMessage parseAllLocations(const Json::Value& msg);
 
 	//Deserialize a UNICAST message.
-	static sm4ns3::UnicastMessage parseUnicast(const Json::Value& msg);
+	static UnicastMessage parseUnicast(const Json::Value& msg);
 
 	//Deserialize a MULTICAST message.
-	static sm4ns3::MulticastMessage parseMulticast(const Json::Value& msg);
+	static MulticastMessage parseMulticast(const Json::Value& msg);
 
 	//Add default MessageBase properties to an existing Json-encoded message.
 	//(Normally not called externally).

@@ -4,18 +4,17 @@
 
 #pragma once
 
-#include "smb_message_queue.h"
-#include "smb_message_factory_base.h"
-#include "smb_connection.h"
-
 #include <iostream>
 
 #include "ns3/system-mutex.h"
 #include "ns3/system-thread.h"
-//#include "ns3/system-condition.h"
 
 #include <boost/asio/io_service.hpp>
 #include <jsoncpp/json/json.h>
+
+#include "thread_safe_queue.h"
+#include "smb_message_factory_base.h"
+#include "smb_connection.h"
 
 
 
@@ -50,18 +49,17 @@ private:
 
 	bool m_pause;
 
-	//
-	//TODO: Double check for race conditions here. I'd like to encapsulate all the 
-	//      thread-unsafe code into obvious places; otherwise, we'll have to restore the MessageQueues.
-	//
 
+	//Since both threads (network+main) interact with these message buffers, we use a ThreadSafeQueue to safely access them.
 	//sm4ns3::MessageQueue<msg_ptr> m_incoming;
-	std::vector<Json::Value> m_incoming;
+//	std::vector<Json::Value> m_incoming;
+	ThreadSafeQueue<Json::Value> m_incoming;
 
 	//sm4ns3::MessageQueue<Json::Value> m_outgoing;
-	std::vector<Json::Value> m_outgoing;
+//	std::vector<Json::Value> m_outgoing;
+	ThreadSafeQueue<Json::Value> m_outgoing;
 
-	sm4ns3::MessageQueue<std::string> m_incoming_conf;
+//	sm4ns3::ThreadSafeQueue<std::string> m_incoming_conf;
 
 
 	sm4ns3::MessageFactory msgFactory;

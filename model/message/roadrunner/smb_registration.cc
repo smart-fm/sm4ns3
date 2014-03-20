@@ -6,9 +6,10 @@
 #include <string>
 
 #include "smb_registration.h"
+
 #include "smb_agent.h"
 #include "smb_connection.h"
-#include "smb_serializer.h"
+#include "serialize.h"
 #include "smb_broker.h"
 
 namespace sm4ns3 {

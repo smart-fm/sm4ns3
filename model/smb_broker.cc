@@ -3,15 +3,16 @@
 //   license.txt   (http://opensource.org/licenses/MIT)
 
 #include "smb_broker.h"
-#include "smb_serializer.h"
+#include "serialize.h"
 #include "smb_registration.h"
-#include "smb_message_handler_base.h"
+#include "handler_base.h"
 
 #include "ns3/config.h"
 #include "ns3/string.h"
 #include "ns3/simulator.h"
 #include "ns3/nstime.h"
 #include "ns3/log.h"
+#include "ns3/ptr.h"
 
 #include <time.h>
 
@@ -19,14 +20,12 @@
 using std::string;
 using namespace ns3;
 
-namespace sm4ns3 {
-
-unsigned int Broker::m_global_tick;
-unsigned int Broker::global_pckt_cnt;
+unsigned int sm4ns3::Broker::m_global_tick;
+unsigned int sm4ns3::Broker::global_pckt_cnt;
 
 NS_LOG_COMPONENT_DEFINE("SimMobility");
 
-Broker::Broker(const string& simmobility_address, const string& simmobility_port) :
+sm4ns3::Broker::Broker(const string& simmobility_address, const string& simmobility_port) :
 	simmob_host(simmobility_address),
 	simmob_port(simmobility_port),
 	conn(io_service, this),
@@ -36,14 +35,14 @@ Broker::Broker(const string& simmobility_address, const string& simmobility_port
 	global_pckt_cnt = 0;
 }
 
-Broker::~Broker() 
+sm4ns3::Broker::~Broker() 
 {
 	io_service.stop();
 	iorun_thread.Join();
 }
 
 
-void Broker::onMessageReceived(const string& input) 
+void sm4ns3::Broker::onMessageReceived(const string& input) 
 {
 	//What to do with the message now?
 	//if you are in the initial stage of being authenticated or getting the
@@ -60,7 +59,7 @@ void Broker::onMessageReceived(const string& input)
 
 
 
-bool Broker::start(std::string application) 
+bool sm4ns3::Broker::start(std::string application) 
 {
 	m_global_tick = 0;
 	//bool res;
@@ -99,37 +98,36 @@ bool Broker::start(std::string application)
 	iorun_thread = SystemThread(MakeCallback (&Broker::run_io_service, this));
 	iorun_thread.Start();
 
-
-//	processInitMessages(); //go to function's definition's to see why we call this method here!
-
 	NS_LOG_UNCOND( "basic Network Setting" );
 
-	  // disable fragmentation for frames below 2200 bytes
-	  ns3::Config::SetDefault ("ns3::WifiRemoteStationManager::FragmentationThreshold", StringValue ("2200"));
-	  // turn off RTS/CTS for frames below 2200 bytes
-	  ns3::Config::SetDefault ("ns3::WifiRemoteStationManager::RtsCtsThreshold", StringValue ("2200"));
-	  // Fix non-unicast data rate to be the same as that of unicast
-	  std::string phyMode ("DsssRate1Mbps");
-	  ns3::Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue (phyMode));
+	// disable fragmentation for frames below 2200 bytes
+	ns3::Config::SetDefault ("ns3::WifiRemoteStationManager::FragmentationThreshold", StringValue ("2200"));
+	
+	// turn off RTS/CTS for frames below 2200 bytes
+	ns3::Config::SetDefault ("ns3::WifiRemoteStationManager::RtsCtsThreshold", StringValue ("2200"));
+	
+	// Fix non-unicast data rate to be the same as that of unicast
+	std::string phyMode ("DsssRate1Mbps");
+	ns3::Config::SetDefault ("ns3::WifiRemoteStationManager::NonUnicastMode", StringValue (phyMode));
+
 	NS_LOG_UNCOND( "Broker::start returning" );
 	Simulator::ScheduleNow(&Broker::pause, this);
 	return true;
 }
 
 
-void Broker::run_io_service() 
+void sm4ns3::Broker::run_io_service() 
 {
 	io_service.run();
 }
 
 
-void Broker::insertOutgoing(const Json::Value &value) 
+void sm4ns3::Broker::insertOutgoing(const Json::Value &value) 
 {
-	CriticalSection lock(mutex_pause);
-	m_outgoing.push_back(value);
+	m_outgoing.push(value);
 }
 
-void Broker::pause() 
+void sm4ns3::Broker::pause() 
 {
 	timespec slTm;
 	slTm.tv_sec = 0;
@@ -174,32 +172,35 @@ void Broker::pause()
 
 
 
-void Broker::processIncoming() 
+void sm4ns3::Broker::processIncoming() 
 {
-	CriticalSection lock(mutex_pause);
-	for (std::vector<Json::Value>::const_iterator it=m_incoming.begin(); it!=m_incoming.end(); it++) {
-		if (!it->isMember("MESSAGE_TYPE")) {
+	Json::Value msg;
+	while (m_incoming.pop(msg)) {
+		if (!msg.isMember("MESSAGE_TYPE")) {
 			std::cout <<"Invalid message, no message_type\n";
 			return;
 		}
 
 		//Get the handler, let it parse its own expected message type.
-		const sm4ns3::Handler* handler = msgFactory.getHandler((*it)["MESSAGE_TYPE"].asString());
+		const sm4ns3::Handler* handler = msgFactory.getHandler(msg["MESSAGE_TYPE"].asString());
 		if (handler) {
-			handler->handle(*it, this);
+			handler->handle(msg, this);
 		} else {
-			std::cout <<"no handler for type \"" <<(*it)["MESSAGE_TYPE"].asString() << "\"\n";
+			std::cout <<"no handler for type \"" <<msg["MESSAGE_TYPE"].asString() << "\"\n";
 		}
 	}
-	m_incoming.clear();
 }
 
 
-void Broker::sendOutgoing() {
+void sm4ns3::Broker::sendOutgoing() {
+	//Some fiddling.
+	std::vector<Json::Value> messages;
+	Json::Value root;
+	while (m_outgoing.pop(root)) { messages.push_back(root); }
 
-	//Even easier.
+	//Now send.
 	std::string msg;
-	if (!JsonParser::serialize(m_outgoing, msg))  {
+	if (!JsonParser::serialize(messages, msg))  {
 		std::cout <<"Broker couldn't serialize messages.\n";
 		return;
 	}
@@ -221,35 +222,38 @@ void Broker::sendOutgoing() {
 //then redirects the parsed messages based on their
 //type and category for further processing
 //return value will tell you whether notify or not
-bool Broker::parsePacket(const std::string &input)
+bool sm4ns3::Broker::parsePacket(const std::string &input)
 {
-	CriticalSection lock(mutex_pause);
 	//Let the serializer handle the heavy lifting.
-	m_incoming.clear(); //Just in case.
-	if (!JsonParser::deserialize(input, m_incoming)) {
+	std::vector<Json::Value> temp;
+	if (!JsonParser::deserialize(input, temp)) {
 		std::cout <<"Broker couldn't parse packet.\n";
 		return false;
 	}
 
 	//We have to introspect a little bit, in order to find our READY_TO_RECEIVE message.
-	for (std::vector<Json::Value>::const_iterator it=m_incoming.begin(); it!=m_incoming.end(); it++) {
+	bool res = false;
+	for (std::vector<Json::Value>::const_iterator it=temp.begin(); it!=temp.end(); it++) {
 		if (it->isMember("MESSAGE_TYPE") && (*it)["MESSAGE_TYPE"] == "READY_TO_RECEIVE") {
-			return true;
+			res = true;
+		} else {
+			m_incoming.push(*it);
 		}
 	}
 
-	return false;
+	return res;
 }
 
 
-void Broker::setSimmobilityConnectionPoint(std::string simmobility_address, std::string simmobility_port) 
+void sm4ns3::Broker::setSimmobilityConnectionPoint(std::string simmobility_address, std::string simmobility_port) 
 {
 	simmob_host = simmobility_address;
 	simmob_port = simmobility_port;
 }
 
-sm4ns3::Connection & Broker::getConnection(){
+sm4ns3::Connection& sm4ns3::Broker::getConnection()
+{
 	return conn;
 }
 
-} //namespace
+

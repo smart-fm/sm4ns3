@@ -1,12 +1,59 @@
-#include "smb_rr_casts.h"
-#include "smb_serializer.h"
-#include "ns3/packet.h"
+//Copyright (c) 2014 Singapore-MIT Alliance for Research and Technology
+//Licensed under the terms of the MIT License, as described in the file:
+//   license.txt   (http://opensource.org/licenses/MIT)
+
+#include "handlers.h"
+
+#include "ns3/ptr.h"
+
+#include "messages.h"
+#include "serialize.h"
 #include "smb_agent.h"
 #include "smb_broker.h"
-#include "smb_serializer.h"
+
+void sm4ns3::AgentsInfoHandler::handle(const Json::Value& msg, Broker* broker) const
+{
+	//Ask the serializer for an AgentsInfo message.
+	AgentsInfoMessage aInfo = JsonParser::parseAgentsInfo(msg);
+
+	//Process add/remove agent requestss
+	for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
+		ns3::Ptr<Agent> agent = ns3::CreateObject<sm4ns3::Agent>(*it, broker);
+		sm4ns3::Agent::AddAgent(*it, agent);
+	}
+	for (std::vector<unsigned int>::const_iterator it=aInfo.remAgentIds.begin(); it!=aInfo.remAgentIds.end(); it++) {
+		sm4ns3::Agent::RemoveAgent(*it);
+	}
+}
 
 
-void sm4ns3::HDL_UNICAST::handle(const Json::Value& msg, Broker* broker) const
+void sm4ns3::AllLocationHandler::handle(const Json::Value& msg, Broker* broker) const
+{
+	//Ask the serializer for an AllLocations message.
+	AllLocationsMessage aInfo = JsonParser::parseAllLocations(msg);
+
+	//Now react accordingly.
+	boost::unordered_map<unsigned int, ns3::Ptr<Agent> >& all_agents = Agent::getAgents();
+	for (std::map<unsigned int, sm4ns3::DPoint>::const_iterator it=aInfo.agentLocations.begin(); it!=aInfo.agentLocations.end(); it++) {
+		if(all_agents.find(it->first) == all_agents.end()) {
+			std::cout <<"Agent id (" <<it->first << ") not found.\n";
+			continue;
+		}
+
+		ns3::Ptr<Agent> agent = all_agents[it->first];
+		ns3::Vector v(it->second.x, it->second.y, 0.0);
+		if(!agent){
+			std::cout <<"Agent id (" <<it->first << ") invalid.\n";
+			continue;
+		} else {
+			agent->SetPosition(v);
+		}
+	}
+}
+
+
+
+void sm4ns3::UnicastHandler::handle(const Json::Value& msg, Broker* broker) const
 {
 	//Ask the serializer for a Unicast message.
 	UnicastMessage ucMsg = JsonParser::parseUnicast(msg);
@@ -21,7 +68,8 @@ void sm4ns3::HDL_UNICAST::handle(const Json::Value& msg, Broker* broker) const
 	//TODO: was this ever implemented? ~Seth
 }
 
-void sm4ns3::HDL_MULTICAST::handle(const Json::Value& msg, Broker* broker) const
+
+void sm4ns3::MulticastHandler::handle(const Json::Value& msg, Broker* broker) const
 {
 	//Ask the serializer for a Multicast message.
 	MulticastMessage mcMsg = JsonParser::parseMulticast(msg);

@@ -10,7 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <jsoncpp/json/json.h>
 
-#include "smb_serializer.h"
+//#include "serialize.h"
 #include "smb_broker.h"
 
 using namespace boost;

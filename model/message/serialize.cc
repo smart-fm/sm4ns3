@@ -2,7 +2,7 @@
 //Licensed under the terms of the MIT License, as described in the file:
 //   license.txt   (http://opensource.org/licenses/MIT)
 
-#include "smb_serializer.h"
+#include "serialize.h"
 
 #include <sstream>
 #include <stdexcept>
@@ -75,7 +75,7 @@ bool sm4ns3::JsonParser::deserialize_single(const std::string& msgStr, const std
 	}
 
 	//There should only be one message.
-	if (msgs.size() != 0) {
+	if (msgs.size() != 1) {
 		std::cout <<"Error: expected a single message (" <<expectedType <<").\n";
 		return false;
 	}

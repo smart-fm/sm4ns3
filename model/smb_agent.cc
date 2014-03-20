@@ -4,7 +4,7 @@
 
 #include "smb_agent.h"
 #include "smb_broker.h"
-#include "smb_serializer.h"
+#include "serialize.h"
 #include <iostream>
 #include "ns3/core-module.h"
 #include "ns3/mobility-module.h"
@@ -90,12 +90,12 @@ ns3::Ptr<Agent>& Agent::getAgent(unsigned int id){
 }
 
 Agent::Agent(int m_AgentId_, sm4ns3::Broker* broker_):m_AgentId(m_AgentId_), m_parent_broker(broker_) {
-	NS_LOG_UNCOND("Inside Agent::Agent(2)");
+//	NS_LOG_UNCOND("Inside Agent::Agent(2)");
 	m_isa = 0;
 //	Agent();
 }
 Agent::Agent(AgentConfig config):m_AgentId(config.id), m_parent_broker(config.broker) {
-	NS_LOG_UNCOND("Inside Agent::Agent(1)");
+//	NS_LOG_UNCOND("Inside Agent::Agent(1)");
 	m_isa = 0;
 //	Agent();
 }

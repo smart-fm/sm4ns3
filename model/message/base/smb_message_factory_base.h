@@ -11,40 +11,23 @@
 
 #include "ns3/log.h"
 
-#include "smb_message_base.h"
 
 namespace sm4ns3 {
 
+class Handler;
+
 
 class MessageFactory {
-	enum MessageType {
-		READY,
-		TIME_DATA,
-		ALL_LOCATIONS_DATA,
-		CLIENT_MESSAGES_DONE,
-		READY_TO_RECEIVE,
-		AGENTS_INFO,
-		MULTICAST,
-		UNICAST,
-	};
-
 public:
 	MessageFactory();
 	~MessageFactory();
-
-	//Turn an input string into a list of Json-formatted messages
-//	bool createMessage(const std::string&, std::vector<sm4ns3::msg_ptr>&);
 
 	//Retrieve a message handler for a given message type.
 	const sm4ns3::Handler* getHandler(const std::string& msgType);
 
 private:
-	std::map<std::string, MessageType> MessageMap;
-	std::map<MessageType, sm4ns3::Handler*> HandlerMap;
-
-public:
-	//Make a single message from its Json representation.
-	//bool createSingleMessage(const Json::Value&, sm4ns3::msg_ptr&);
+	//Handy lookup for handler types.
+	std::map<std::string, const sm4ns3::Handler*> HandlerMap;
 };
 
 }
