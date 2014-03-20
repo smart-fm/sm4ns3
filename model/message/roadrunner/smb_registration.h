@@ -9,11 +9,11 @@
 namespace sm4ns3 {
 
 //Forward declaration
-class Broker;
+class BrokerBase;
 
 class Registration {
 public:
-	Registration(sm4ns3::Broker* broker_, std::string application = "Default");
+	Registration(BrokerBase* broker, std::string app = "Default");
 	virtual ~Registration();
 	virtual bool start();
 
@@ -31,7 +31,7 @@ protected:
 
 protected:
 	std::string m_application;
-	sm4ns3::Broker* m_broker;
+	BrokerBase* broker;
 	std::string m_simmobility_address;
 	std::string m_simmobility_port;
 };
@@ -39,7 +39,7 @@ protected:
 
 class WFD_Registration : public Registration {
 public:
-	WFD_Registration(sm4ns3::Broker*, std::string application_ = "stk");
+	WFD_Registration(BrokerBase* broker, std::string app = "stk");
 	virtual ~WFD_Registration();
 
 protected:

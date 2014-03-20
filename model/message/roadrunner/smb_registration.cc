@@ -13,9 +13,8 @@
 #include "smb_broker.h"
 
 
-sm4ns3::Registration::Registration(sm4ns3::Broker* broker_, std::string application_) :
-	m_application(application_),
-	m_broker(broker_)
+sm4ns3::Registration::Registration(BrokerBase* broker, std::string app) :
+	m_application(app), broker(broker)
 {
 }
 
@@ -45,7 +44,7 @@ bool sm4ns3::Registration::doConnect(unsigned int timeout)
 {
 	//connect
 	unsigned int sec = 0;
-	while (!m_broker->getConnection().connect()) {
+	while (!broker->getConnection().connect()) {
 		if (sec == 0) {
 			std::cout <<"Couldn't connect; trying again for " <<timeout <<" seconds.\n";
 		}
@@ -63,7 +62,7 @@ bool sm4ns3::Registration::doWhoAreYou()
 {
 	//A single "WHOAREYOU" message it expected
 	std::string str;
-	if (!m_broker->getConnection().receive(str)) {
+	if (!broker->getConnection().receive(str)) {
 		std::cout <<"Error reading WHOAREYOU.\n";
 		return false;
 	}
@@ -88,7 +87,7 @@ bool sm4ns3::Registration::doWhoAreYou()
 	std::string whoami;
 	JsonParser::serialize(res, whoami);
 
-	if (!m_broker->getConnection().send(whoami)) {
+	if (!broker->getConnection().send(whoami)) {
 		std::cout <<"ERROR: unable to send WHOAMI response.\n";
 		return false;
 	}
@@ -99,7 +98,7 @@ bool sm4ns3::Registration::doAGENTS_INFO()
 {
 	//A single "AGENTS_INFO" message it expected
 	std::string str;
-	if (!m_broker->getConnection().receive(str)) {
+	if (!broker->getConnection().receive(str)) {
 		std::cout <<"Error reading AGENTS_INFO.\n";
 		return false;
 	}
@@ -123,9 +122,9 @@ bool sm4ns3::Registration::doAGENTS_INFO()
 	for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
 		//TODO: Fix this further.
 		if (m_application=="Default") {
-			sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<Agent>(*it, m_broker));
+			sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<Agent>(*it, broker));
 		} else if (m_application=="stk") {
-			sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<WFD_Agent>(*it, m_broker));
+			sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<WFD_Agent>(*it, broker));
 		} else {
 			throw std::runtime_error("Invalid m_application.");
 		}
@@ -147,7 +146,7 @@ bool sm4ns3::Registration::doREADY()
 {
 	//expect to read READY message
 	std::string str;
-	if (!m_broker->getConnection().receive(str)) {
+	if (!broker->getConnection().receive(str)) {
 		return false;
 	}
 
@@ -170,8 +169,8 @@ bool sm4ns3::Registration::doREADY()
 ///////////////////////////////////////////////////////////////
 
 
-sm4ns3::WFD_Registration::WFD_Registration(sm4ns3::Broker* broker_, std::string application_) :
-	Registration(broker_, application_)
+sm4ns3::WFD_Registration::WFD_Registration(BrokerBase* broker, std::string app) :
+	Registration(broker, app)
 {
 }
 
@@ -192,7 +191,7 @@ bool sm4ns3::WFD_Registration::doInitialization()
 	const std::string msg = makeGO_ClientPacket();
 
 	//Send this information to simmobility
-	if (!m_broker->getConnection().send(msg)) {
+	if (!broker->getConnection().send(msg)) {
 		return false;
 	}
 

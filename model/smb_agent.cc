@@ -90,12 +90,12 @@ ns3::Ptr<Agent>& Agent::getAgent(unsigned int id){
 	return Agent::AllAgents[id];
 }
 
-Agent::Agent(int m_AgentId_, sm4ns3::Broker* broker_):m_AgentId(m_AgentId_), m_parent_broker(broker_) {
+Agent::Agent(int m_AgentId_, BrokerBase* broker):m_AgentId(m_AgentId_), broker(broker) {
 //	NS_LOG_UNCOND("Inside Agent::Agent(2)");
 	m_isa = 0;
 //	Agent();
 }
-Agent::Agent(AgentConfig config):m_AgentId(config.id), m_parent_broker(config.broker) {
+Agent::Agent(AgentConfig config):m_AgentId(config.id), broker(config.broker) {
 //	NS_LOG_UNCOND("Inside Agent::Agent(1)");
 	m_isa = 0;
 //	Agent();
@@ -127,10 +127,10 @@ void Agent::init()
 	Bind();
 }
 
-ns3::Ptr<Agent> Agent::clone(int m_AgentId_ , sm4ns3::Broker* broker_){
+/*ns3::Ptr<Agent> Agent::clone(int m_AgentId_ , sm4ns3::Broker* broker_){
 	NS_LOG_UNCOND("Inside Agent::clone" << this);
 	return ns3::CreateObject<Agent>(m_AgentId_,broker_);
-}
+}*/
 //ns3::Ptr<Agent> Agent::clone(int m_AgentId_ id, sm4ns3::Broker* broker_){
 //	return ns3::CreateObject<Agent>(id,broker_);
 //}
@@ -176,7 +176,7 @@ void Agent::ReceivePacket (ns3::Ptr<ns3::Socket> socket)
 			//change the sender and sender type information, then forward to the client Android app.
 			j_msg["SENDER"] = "0";
 			j_msg["SENDER_TYPE"] = "NS3_SIMULATOR";
-			m_parent_broker->insertOutgoing(j_msg);
+			broker->insertOutgoing(j_msg);
 		}
 	}
 }
@@ -302,7 +302,7 @@ void WFD_Agent::setRole(AgentRole role_){
 	role = role_;
 }
 
-WFD_Agent::WFD_Agent(int m_AgentId_, sm4ns3::Broker* broker_):Agent(m_AgentId_,broker_){
+WFD_Agent::WFD_Agent(int m_AgentId_, BrokerBase* broker):Agent(m_AgentId_,broker){
 	NS_LOG_UNCOND("Inside WFD_Agent::WFD_Agent(2)");
 }
 WFD_Agent::WFD_Agent():Agent(){
@@ -330,11 +330,11 @@ void WFD_Agent::init(){
 	wfd_nc.Add(m_wfd_node);
 
 }
-ns3::Ptr<Agent> WFD_Agent::clone(int m_AgentId_ , sm4ns3::Broker* broker_){
+/*ns3::Ptr<Agent> WFD_Agent::clone(int m_AgentId_ , sm4ns3::Broker* broker_){
 
 //	NS_LOG_UNCOND("Inside WFD_Agent::clone" << this);
 	return ns3::CreateObject<WFD_Agent>(m_AgentId_,broker_);
-}
+}*/
 
 void WFD_Agent::figureOutGroup(){
 	groupId = 0;//for now

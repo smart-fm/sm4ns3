@@ -26,9 +26,9 @@ namespace sm4ns3 {
 
 /***
  * The Session class provides serialization primitives on top of a socket.
- * Each message sent using this class consists of:
- * @li An 8-byte header containing the length of the serialized data in hexadecimal.
- * @li The serialized data.
+ * Each "bundle" sent using this class consists of:
+ * @li A short "bundle header", which tells how much data is following (8 bytes, but varies in meaning between the old version and the new. old=length in hex).
+ * @li The "bundle data" itself.
  */
 class Session : public boost::enable_shared_from_this<Session> {
 public:
@@ -50,16 +50,35 @@ public:
 		return socket_.is_open();
 	}
 
-	/// Asynchronously write a data structure to the socket.
-	bool write(std::string & t)
+	//Create a "version 0" (old-style) header, consisting of the data's length as an 8-byte hex (text) string.
+	std::string make_bundle_header_v0(const std::string& data) 
+	{
+		std::ostringstream header_stream;
+		header_stream << std::setw(header_length) << std::hex << data.size();
+		if (!header_stream || header_stream.str().size() != header_length) {
+			return "";
+		}
+		return header_stream.str();
+	}
+
+	//Read a "version 0" (old-style) header, returning the length of the remaining data section in bytes.
+	unsigned int read_bundle_header_v0(const std::string& header) 
+	{
+		std::istringstream is(header);
+		unsigned int res = 0;
+		if (!(is >> std::hex >> res)) {
+			return 0;
+		}
+		return res;
+	}
+
+
+	/// Synchronously write a data structure to the socket.
+	bool write(std::string& t)
 	{
 		// Format the header.
-		std::ostringstream header_stream;
-		header_stream << std::setw(header_length) << std::hex << t.size();
-		if (!header_stream || header_stream.str().size() != header_length) {
-			return false;
-		}
-		outbound_header_ = header_stream.str();
+		outbound_header_ = make_bundle_header_v0(t);
+		if (outbound_header_.empty()) { return false; }
 
 		// Write the serialized data to the socket. We use "gather-write" to send
 		// both the header and the data in a single write operation.
@@ -75,15 +94,13 @@ public:
 	void async_write(std::string & t, Handler handler)
 	{
 		// Format the header.
-		std::ostringstream header_stream;
-		header_stream << std::setw(header_length) << std::hex << t.size();
-		if (!header_stream || header_stream.str().size() != header_length) {
+		outbound_header_ = make_bundle_header_v0(t);
+		if (outbound_header_.empty()) {
 			// Something went wrong, inform the caller.
 			boost::system::error_code error(boost::asio::error::invalid_argument);
 			socket_.get_io_service().post(boost::bind(handler, error));
 			return;
 		}
-		outbound_header_ = header_stream.str();
 
 		// Write the serialized data to the socket. We use "gather-write" to send
 		// both the header and the data in a single write operation.
@@ -102,22 +119,22 @@ public:
 			std::cout <<"synchronous Read error-0 [" << ec.message() << "]\n";
 			return false;
 		}
-		std::istringstream is(std::string(inbound_header_, header_length));
-		std::size_t inbound_data_size = 0;
-		if (!(is >> std::hex >> inbound_data_size)) {
+
+		unsigned int remLen = read_bundle_header_v0(std::string(inbound_header_, header_length));
+		if (remLen == 0) {
 			return false;
 		}
 
 		// Start an asynchronous call to receive the data.
-		inbound_data_.resize(inbound_data_size);
-		boost::asio::read(socket_, boost::asio::buffer(inbound_data_,inbound_data_size), ec);
+		inbound_data_.resize(remLen);
+		boost::asio::read(socket_, boost::asio::buffer(inbound_data_,remLen), ec);
 		if(ec) {
 			std::cout <<"synchronous Read error-1 [" << ec.message() << "]\n";
 			return false;
 		}
 
 		try {
-			std::string archive_data(&inbound_data_[0], inbound_data_size);
+			std::string archive_data(&inbound_data_[0], remLen);
 			t = archive_data;
 		} catch (std::exception& e) {
 			std::cout <<"synchronous Read error-2 [" << e.what() << "]";
@@ -149,9 +166,8 @@ public:
 			boost::get<0>(handler)(e);
 		} else {
 			// Determine the length of the serialized data.
-			std::istringstream is(std::string(inbound_header_, header_length));
-			std::size_t inbound_data_size = 0;
-			if (!(is >> std::hex >> inbound_data_size)) {
+			unsigned int remLen = read_bundle_header_v0(std::string(inbound_header_, header_length));
+			if (remLen == 0) {
 				// Header doesn't seem to be valid. Inform the caller.
 				boost::system::error_code error(boost::asio::error::invalid_argument);
 				boost::get<0>(handler)(error);
@@ -159,7 +175,7 @@ public:
 			}
 
 			// Start an asynchronous call to receive the data.
-			inbound_data_.resize(inbound_data_size);
+			inbound_data_.resize(remLen);
 			void (Session::*f)(const boost::system::error_code&, std::string&, boost::tuple<Handler>)
 				= &Session::handle_read_data<Handler>;
 			boost::asio::async_read(socket_, boost::asio::buffer(inbound_data_),

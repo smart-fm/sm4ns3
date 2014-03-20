@@ -23,7 +23,14 @@ namespace sm4ns3 {
 ///Contains various callback functions, allowing other classes to interact with Brokers without requiring the entire object.
 class BrokerBase {
 public:
+	///Used by Connection to send messagse back to the Broker. Called asynchronously; make sure to lock properly.
 	virtual void onMessageReceived(const std::string& message) = 0;
+
+	///Used by Registration and WFD_Registration
+	virtual Connection& getConnection() = 0;
+
+	//Used by Agent, WFD_Agent
+	virtual void insertOutgoing(const Json::Value & value) = 0;
 };
 
 
@@ -34,46 +41,35 @@ public:
 
 	//Overriding BrokerBase
 	virtual void onMessageReceived(const std::string& message);
+	virtual Connection& getConnection();
+	virtual void insertOutgoing(const Json::Value & value);
 
 private:
-	//Connection settings; host/port
-//	std::string simmob_host;
-//	std::string simmob_port;
-
+	//Connection to Sim Mobility.
 	sm4ns3::Connection conn;
 
-
+	//This variable+mutex is used to advance the program between reading from a network stream and performing simulation.
 	ns3::SystemMutex mutex_pause;
-
-//	ns3::SystemCondition cond_sim;
-
 	bool m_pause;
 
-
 	//Since both threads (network+main) interact with these message buffers, we use a ThreadSafeQueue to safely access them.
-	//sm4ns3::MessageQueue<msg_ptr> m_incoming;
-//	std::vector<Json::Value> m_incoming;
 	ThreadSafeQueue<Json::Value> m_incoming;
-
-	//sm4ns3::MessageQueue<Json::Value> m_outgoing;
-//	std::vector<Json::Value> m_outgoing;
 	ThreadSafeQueue<Json::Value> m_outgoing;
 
-//	sm4ns3::ThreadSafeQueue<std::string> m_incoming_conf;
-
-
+	//Used to find the correct handler to deal with messages (by type)
 	sm4ns3::HandlerLookup handleLookup;
 
-	//I/O needs to go in its own thread.
+	//I/O needs to go in its own thread, which is spun off via this function.
+	boost::asio::io_service io_service;
 	ns3::SystemThread iorun_thread;
-
 	void run_io_service();
+
 public:
+	//TODO: Surely we can avoid these.
 	static unsigned int m_global_tick;
 	static unsigned int global_pckt_cnt;
-	boost::asio::io_service io_service;
+
 	virtual bool start(std::string application = "stk");
-	void insertOutgoing(const Json::Value & value);
 	virtual void pause();
 	bool processInitMessages();
 	void sendClientDone();
@@ -81,7 +77,9 @@ public:
 	void sendOutgoing();
 	bool parsePacket(const std::string &input);
 
-	sm4ns3::Connection & getConnection();
 };
 
-} //namespace
+
+}
+
+

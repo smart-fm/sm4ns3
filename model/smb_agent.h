@@ -26,13 +26,13 @@ class NqosWifiMacHelper;
 
 using namespace ns3;
 namespace sm4ns3 {
-class Broker;
+class BrokerBase;
 //NS_LOG_COMPONENT_DEFINE ("A NAME_sadjcbsajkl");
 struct AgentConfig {
 	unsigned int id;
 	unsigned int type;
-	Broker * broker;
-	AgentConfig(unsigned int id,unsigned int type, Broker*broker):
+	BrokerBase * broker;
+	AgentConfig(unsigned int id,unsigned int type, BrokerBase*broker):
 		id(id),
 		type(type),
 		broker(broker){}
@@ -41,7 +41,7 @@ class Agent : public ns3::Object{
 public:
 	ns3::Ptr<ns3::Node> m_node; // Agent has a node
     int m_AgentId; // Agent's id
-    sm4ns3::Broker* m_parent_broker;
+    sm4ns3::BrokerBase* broker;
     ns3::Ptr<ns3::NetDevice> m_device; // Agent has a device
 
 //    sm4ns3::BaseWifi m_basic_wifi;
@@ -66,13 +66,12 @@ public:
     /// Override TypeId.
     static ns3::TypeId GetTypeId(void);
     //	constructor
-	Agent(int m_AgentId_, sm4ns3::Broker* broker_);
+	Agent(int m_AgentId_, BrokerBase* broker);
 	Agent(AgentConfig config);
 	Agent();
 	void DevRxTrace(std::string context, Ptr<const Packet> p);
 	virtual void init();
-	virtual ns3::Ptr<Agent> clone(int m_AgentId_, sm4ns3::Broker* broker_);
-//	static sm4ns3::BaseFactory<Agent*> &getFactory();
+
 	static void SetBasicNetworking(
 			const ns3::WifiHelper &wifi = ns3::WifiHelper::Default(),
 			const ns3::YansWifiPhyHelper &phy = ns3::YansWifiPhyHelper::Default(),
@@ -187,12 +186,12 @@ private:
     static ns3::Ipv4AddressHelper wfd_ipAddrs;
 public:
 
-	WFD_Agent(int m_AgentId_, sm4ns3::Broker* broker_);
+	WFD_Agent(int m_AgentId_, BrokerBase* broker);
 	WFD_Agent();
 	void init();
 	AgentRole getRole();
 	void setRole(AgentRole);
-	ns3::Ptr<Agent> clone(int m_AgentId_, sm4ns3::Broker* broker_);
+//	ns3::Ptr<Agent> clone(int m_AgentId_, sm4ns3::Broker* broker_);
 
 	//which group are you in and which role do you have?
 	void figureOutGroup();
