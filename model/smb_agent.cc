@@ -18,7 +18,7 @@ BaseWifi temp;
 BaseWifi Agent::m_wifi = temp;
 BaseMobility Agent::m_mobility;
 BaseIP Agent::m_ip;
-boost::unordered_map<unsigned int, ns3::Ptr<Agent> > Agent::m_all_agents;
+std::map<unsigned int, ns3::Ptr<Agent> > Agent::AllAgents;
 //sm4ns3::BaseFactory<Agent*> Agent::m_agentFactory;
 
 ns3::Ipv4Address
@@ -77,16 +77,17 @@ ns3::TypeId Agent::GetTypeId(void) {
     return tid;
 }
 
-boost::unordered_map<unsigned int,ns3::Ptr<Agent> > & Agent::getAgents(){
-	return Agent::m_all_agents;
+std::map<unsigned int,ns3::Ptr<Agent> >& Agent::getAgents()
+{
+	return Agent::AllAgents;
 }
 
 ns3::Ptr<Agent>& Agent::getAgent(unsigned int id){
-	if(Agent::m_all_agents.find(id) == Agent::m_all_agents.end())
+	if(Agent::AllAgents.find(id) == Agent::AllAgents.end())
 	{
 		NS_LOG_UNCOND( "Agent::getAgent Agent not found[" << id  << "]" );
 	}
-	return Agent::m_all_agents[id];
+	return Agent::AllAgents[id];
 }
 
 Agent::Agent(int m_AgentId_, sm4ns3::Broker* broker_):m_AgentId(m_AgentId_), m_parent_broker(broker_) {
@@ -194,17 +195,15 @@ Agent::~Agent() {
 
 void Agent::AddAgent(unsigned int id, ns3::Ptr<Agent> value)
 {
-	m_all_agents.insert(std::make_pair(id, value));
-//	NS_LOG_UNCOND( "inserting the agent into the map done--" << m_all_agents.size() );
+	AllAgents.insert(std::make_pair(id, value));
 }
 
 void Agent::RemoveAgent(unsigned int id)
 {
-	boost::unordered_map<unsigned int, ns3::Ptr<Agent> >::iterator it;
-	if((it = m_all_agents.find(id)) != m_all_agents.end())
-	{
+	std::map<unsigned int, ns3::Ptr<Agent> >::iterator it;
+	if((it = AllAgents.find(id)) != AllAgents.end()) {
 		it->second->Dispose();
-		m_all_agents.erase(it);
+		AllAgents.erase(it);
 	}
 }
 
@@ -339,7 +338,7 @@ ns3::Ptr<Agent> WFD_Agent::clone(int m_AgentId_ , sm4ns3::Broker* broker_){
 
 void WFD_Agent::figureOutGroup(){
 	groupId = 0;//for now
-	setRole(((this->GetAgentId() == m_all_agents.begin()->second->GetAgentId()) ? WFD_GO : WFD_CLIENT));
+	setRole(((this->GetAgentId() == AllAgents.begin()->second->GetAgentId()) ? WFD_GO : WFD_CLIENT));
 }
 
 //all agents configuration

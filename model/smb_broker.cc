@@ -25,10 +25,10 @@ unsigned int sm4ns3::Broker::global_pckt_cnt;
 
 NS_LOG_COMPONENT_DEFINE("SimMobility");
 
-sm4ns3::Broker::Broker(const string& simmobility_address, const string& simmobility_port) :
-	simmob_host(simmobility_address),
-	simmob_port(simmobility_port),
-	conn(io_service, this),
+sm4ns3::Broker::Broker(const string& simmob_host, const string& simmob_port) :
+//	simmob_host(simmobility_address),
+//	simmob_port(simmobility_port),
+	conn(io_service, this, simmob_host, simmob_port),
 	iorun_thread(ns3::SystemThread(ns3::MakeNullCallback<void>()))
 {
 	m_pause = true;
@@ -67,9 +67,9 @@ bool sm4ns3::Broker::start(std::string application)
 	//TODO: Clean this up further
 	sm4ns3::Registration* registration = NULL;
 	if (application=="Default") {
-		registration = new sm4ns3::Registration(this, simmob_host, simmob_port);
+		registration = new sm4ns3::Registration(this);
 	} else if (application=="stk") {
-		registration = new sm4ns3::WFD_Registration(this, simmob_host, simmob_port);
+		registration = new sm4ns3::WFD_Registration(this);
 	} else {
 		throw std::runtime_error("Unknown application.");
 	}
@@ -79,7 +79,7 @@ bool sm4ns3::Broker::start(std::string application)
 		return false;
 	}
 
-	if (!conn.is_open()) {
+	if (!conn.isOpen()) {
 		NS_LOG_ERROR( "Socket is not open" );
 		return false;
 	}
@@ -89,7 +89,7 @@ bool sm4ns3::Broker::start(std::string application)
 	//start the async operation
 	conn.async_receive();
 
-	if (!conn.is_open()) {
+	if (!conn.isOpen()) {
 		NS_LOG_ERROR( "Socket is not open" );
 		return false;
 	}
@@ -182,7 +182,7 @@ void sm4ns3::Broker::processIncoming()
 		}
 
 		//Get the handler, let it parse its own expected message type.
-		const sm4ns3::Handler* handler = msgFactory.getHandler(msg["MESSAGE_TYPE"].asString());
+		const sm4ns3::Handler* handler = handleLookup.getHandler(msg["MESSAGE_TYPE"].asString());
 		if (handler) {
 			handler->handle(msg, this);
 		} else {
@@ -245,11 +245,6 @@ bool sm4ns3::Broker::parsePacket(const std::string &input)
 }
 
 
-void sm4ns3::Broker::setSimmobilityConnectionPoint(std::string simmobility_address, std::string simmobility_port) 
-{
-	simmob_host = simmobility_address;
-	simmob_port = simmobility_port;
-}
 
 sm4ns3::Connection& sm4ns3::Broker::getConnection()
 {

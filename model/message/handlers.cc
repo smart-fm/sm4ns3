@@ -11,6 +11,38 @@
 #include "smb_agent.h"
 #include "smb_broker.h"
 
+
+sm4ns3::HandlerLookup::HandlerLookup() 
+{
+	//Register all known handlers.
+	HandlerMap["MULTICAST"] = new sm4ns3::MulticastHandler();
+	HandlerMap["UNICAST"] = new sm4ns3::UnicastHandler();
+	HandlerMap["ALL_LOCATIONS_DATA"] = new sm4ns3::AllLocationHandler();
+	HandlerMap["AGENTS_INFO"] = new sm4ns3::AgentsInfoHandler();
+	HandlerMap["TIME_DATA"] = new sm4ns3::NullHandler();
+}
+
+sm4ns3::HandlerLookup::~HandlerLookup() 
+{
+	//Reclaim handlers
+	for (std::map<std::string, const sm4ns3::Handler*>::const_iterator it=HandlerMap.begin(); it!=HandlerMap.end(); it++) {
+		delete it->second;
+	}
+	HandlerMap.clear();
+}
+
+
+const sm4ns3::Handler* sm4ns3::HandlerLookup::getHandler(const std::string& msgType)
+{
+	std::map<std::string, const sm4ns3::Handler*>::const_iterator it = HandlerMap.find(msgType);
+	if (it!=HandlerMap.end()) {
+		return it->second;
+	}
+
+	throw std::runtime_error("Unknown handler for message type.");
+}
+
+
 void sm4ns3::AgentsInfoHandler::handle(const Json::Value& msg, Broker* broker) const
 {
 	//Ask the serializer for an AgentsInfo message.
@@ -33,7 +65,7 @@ void sm4ns3::AllLocationHandler::handle(const Json::Value& msg, Broker* broker) 
 	AllLocationsMessage aInfo = JsonParser::parseAllLocations(msg);
 
 	//Now react accordingly.
-	boost::unordered_map<unsigned int, ns3::Ptr<Agent> >& all_agents = Agent::getAgents();
+	std::map<unsigned int, ns3::Ptr<Agent> >& all_agents = Agent::getAgents();
 	for (std::map<unsigned int, sm4ns3::DPoint>::const_iterator it=aInfo.agentLocations.begin(); it!=aInfo.agentLocations.end(); it++) {
 		if(all_agents.find(it->first) == all_agents.end()) {
 			std::cout <<"Agent id (" <<it->first << ") not found.\n";

@@ -4,11 +4,27 @@
 
 #pragma once
 
+#include <string>
 #include <jsoncpp/json/json.h>
 
 #include "handler_base.h"
 
 namespace sm4ns3 {
+
+///Handy lookup class for handlers.
+class HandlerLookup {
+public:
+	HandlerLookup();
+	~HandlerLookup();
+
+	//Retrieve a message handler for a given message type.
+	const sm4ns3::Handler* getHandler(const std::string& msgType);
+
+private:
+	//Handy lookup for handler types.
+	std::map<std::string, const sm4ns3::Handler*> HandlerMap;
+};
+
 
 ///A handler that does nothing.
 class NullHandler : public Handler {

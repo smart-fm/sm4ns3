@@ -8,29 +8,20 @@
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
+#include <boost/system/error_code.hpp>
 
 namespace sm4ns3 {
+
 //Forward Declaration
-struct msg_header;
 class BrokerBase;
 
 
 class Connection {
-private:
-	BrokerBase* broker;
-	boost::asio::io_service &m_io_service;
-	sm4ns3::session_ptr m_session;
-	std::string incomingMessage;
-
 public:
-	Connection(boost::asio::io_service &io_service_, BrokerBase* broker);
-	virtual ~Connection();
+	Connection(boost::asio::io_service &io_service_, BrokerBase* broker, const std::string& simmob_host, const std::string& simmob_port);
 
-	bool start();
-
-	//resolves, connects, authenticates, and issues an async_read
-	bool connect(std::string host, std::string port);
+	//resolves, connects, authenticates, and issues an async_read. 
+	bool connect();
 
 	//	issues a read
 	bool receive(std::string&);
@@ -38,20 +29,26 @@ public:
 	//isues an async_read
 	void async_receive();
 
-	//read handler of the async_read
-	void readHandler(const boost::system::error_code& e);
-
 	//issues a write
 	bool send(std::string str);
 
-	//issues an async_write --todo:not working
-	void async_send(std::string str);
-
-	//handler for async_write
-	void sendHandler(const boost::system::error_code& e);
-
 	//is the socket still working?
-	bool is_open();
+	bool isOpen();
+
+protected:
+	//read handler of the async_read
+	void readHandler(const boost::system::error_code& e);
+
+
+private:
+	BrokerBase* broker;
+	boost::asio::io_service &m_io_service;
+	boost::shared_ptr<Session> m_session;
+	std::string incomingMessage;
+
+	std::string simmob_host;
+	std::string simmob_port;
+
 };
 
 }

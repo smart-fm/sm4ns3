@@ -21,7 +21,6 @@ def build(bld):
         'model/smb_base_ip.cc',
         'model/smb_configurator.cc',
         'model/message/handlers.cc',
-        'model/message/base/smb_message_factory_base.cc',
         'model/message/serialize.cc',
         'roadrunner_testing/smb_roadrunner_baseline.cc',
     ]
@@ -48,7 +47,6 @@ def build(bld):
         'model/message/handler_base.h',
         'model/message/handlers.h',
         'model/thread_safe_queue.h',
-        'model/message/base/smb_message_factory_base.h',
         'model/message/serialize.h',
         'roadrunner_testing/smb_roadrunner_baseline.h',
     ]

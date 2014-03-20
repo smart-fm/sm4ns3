@@ -2,53 +2,64 @@
 //Licensed under the terms of the MIT License, as described in the file:
 //   license.txt   (http://opensource.org/licenses/MIT)
 
+#include "smb_registration.h"
+
 #include <fstream>
 #include <string>
-
-#include "smb_registration.h"
 
 #include "smb_agent.h"
 #include "smb_connection.h"
 #include "serialize.h"
 #include "smb_broker.h"
 
-namespace sm4ns3 {
 
-//sm4ns3::BaseFactory<Registration*> Registration::m_appRegFactory;
-Registration::Registration(sm4ns3::Broker* broker_, std::string simmobility_address_, std::string simmobility_port_, std::string application_) :
+sm4ns3::Registration::Registration(sm4ns3::Broker* broker_, std::string application_) :
 	m_application(application_),
-	m_broker(broker_),
-	m_simmobility_address(simmobility_address_),
-	m_simmobility_port(simmobility_port_)
+	m_broker(broker_)
 {
-	NS_LOG_UNCOND( "Registration\n" );
 }
 
-Registration::~Registration() 
+sm4ns3::Registration::~Registration() 
 {
 }
 
 
-Registration * Registration::clone() const
+bool sm4ns3::Registration::start()
 {
-	return new Registration(m_broker,m_simmobility_address,m_simmobility_port);
+	std::cout <<"Starting Registration\n";
+	if(!doConnect(200)) { return false;}
+	if(!doWhoAreYou()) { return false;}
+
+	//The way we buffer messages, reading from the socket can return the old WHOAMI message if AGENTSINFO hasn't been sent yet. So just give it some time.
+	sleep(1);
+
+	if(!doAGENTS_INFO()) { return false;}
+	if(!doInitialization()) { return false;}
+	if(!doREADY()) { return false;}
+
+	return true;
 }
 
-bool Registration::doConnect()
-{
 
+bool sm4ns3::Registration::doConnect(unsigned int timeout)
+{
 	//connect
-	int cnn_timeout_seconds = 0;
-	while (!m_broker->getConnection().connect(m_simmobility_address, m_simmobility_port)) {
-		if (++cnn_timeout_seconds == 200) {
+	unsigned int sec = 0;
+	while (!m_broker->getConnection().connect()) {
+		if (sec == 0) {
+			std::cout <<"Couldn't connect; trying again for " <<timeout <<" seconds.\n";
+		}
+		if (++sec == timeout) {
 			return false;
 		}
 		sleep(1);
 	}
 
+	std::cout <<"Connected to server.\n";
 	return true;
 }
-bool Registration::doWhoAreYou()
+
+bool sm4ns3::Registration::doWhoAreYou()
 {
 	//A single "WHOAREYOU" message it expected
 	std::string str;
@@ -84,7 +95,7 @@ bool Registration::doWhoAreYou()
 	return true;
 }
 
-bool Registration::doAGENTS_INFO()
+bool sm4ns3::Registration::doAGENTS_INFO()
 {
 	//A single "AGENTS_INFO" message it expected
 	std::string str;
@@ -123,17 +134,17 @@ bool Registration::doAGENTS_INFO()
 	return true;
 }
 
-bool Registration::doAgentInit(){
-	boost::unordered_map<unsigned int, ns3::Ptr<Agent> >::iterator
-	it(Agent::m_all_agents.begin()),
-	it_end(Agent::m_all_agents.end());
-	for(;it != it_end; it++){
+bool sm4ns3::Registration::doInitialization()
+{
+	for(std::map<unsigned int, ns3::Ptr<Agent> >::const_iterator it = Agent::AllAgents.begin(); it!=Agent::AllAgents.end(); it++){
 		it->second->init();
 	}
 	return true;
 }
-//waits for ready message
-bool Registration::doREADY() {
+
+
+bool sm4ns3::Registration::doREADY() 
+{
 	//expect to read READY message
 	std::string str;
 	if (!m_broker->getConnection().receive(str)) {
@@ -152,60 +163,57 @@ bool Registration::doREADY() {
 }
 
 
-bool Registration::start() {
-	NS_LOG_UNCOND("Starting Normal Registration");
-	if(!doConnect()) { return false;}
-	if(!doWhoAreYou()) { return false;}
-	sleep(1); //The way we buffer messages, reading from the socket can return the old WHOAMI message if AGENTSINFO hasn't been sent yet. So just give it some time.
-	if(!doAGENTS_INFO()) { return false;}
-	if(!doAgentInit()) { return false;}
-	if(!doREADY()) { return false;}
+
+///////////////////////////////////////////////////////////////
+//  WIFI Direct Registration functionality
+//  Used for Super Tux Kart
+///////////////////////////////////////////////////////////////
+
+
+sm4ns3::WFD_Registration::WFD_Registration(sm4ns3::Broker* broker_, std::string application_) :
+	Registration(broker_, application_)
+{
+}
+
+sm4ns3::WFD_Registration::~WFD_Registration() 
+{
+}
+
+
+bool sm4ns3::WFD_Registration::doInitialization()
+{
+	//Do the role assignment by filling some containers local to this class
+	if(!doRoleAssignment()) { return false;}
+
+	//Set proper variable at each agent telling him its role + fill in the corresponding GO or Client Node container
+	if(!Registration::doInitialization()) { return false;}
+
+	//Prepare a packet in json format about all agents group information.
+	const std::string msg = makeGO_ClientPacket();
+
+	//Send this information to simmobility
+	if (!m_broker->getConnection().send(msg)) {
+		return false;
+	}
+
+	//Do ns3 protocol settings
+	WFD_Agent::configAll();
 
 	return true;
 }
 
-/*******************************************************
- * ***************WIFI Direct Registration *************
- * ***************Used for Super Tux Kart **************
- *******************************************************/
-WFD_Registration::WFD_Registration(
-		sm4ns3::Broker* broker_,
-		std::string simmobility_address_,
-		std::string simmobility_port_,
-		std::string application_
-		):
-		Registration(broker_,simmobility_address_,simmobility_port_,application_)
-
-{
-	NS_LOG_UNCOND( "WFD_Registration\n" );
-
-}
-
-WFD_Registration::~WFD_Registration() {
-	// TODO Auto-generated destructor stub
-}
-
-Registration * WFD_Registration::clone()const{
-	//nothing to configure for now
-	return new WFD_Registration(m_broker,m_simmobility_address,m_simmobility_port);
-}
 
 //todo: change this sophisticated algorithm :) to support multiple wfd groups in a simulation
-bool WFD_Registration::doRoleAssignment(){
-	///A very very very very and again
-	//VERY sophisticated algorithm to
-	///select the Group Owner.
-	///Feel free to stop reviewing this
-	///method if it is too complex for you.
-	boost::unordered_map<unsigned int,ns3::Ptr<Agent> >::iterator it, it_begin, it_end;
-	it = it_begin = sm4ns3::Agent::getAgents().begin();
-	it_end = sm4ns3::Agent::getAgents().end();
+bool sm4ns3::WFD_Registration::doRoleAssignment()
+{
+	std::map<unsigned int,ns3::Ptr<Agent> >::iterator it = sm4ns3::Agent::getAgents().begin();
+
 	//VERY primitive way that will:
 	//1-choose the first node in the list as GO
 	//2-create ONLY one group.
 	WFD_Group wfd;
 	wfd.GO = wfd.groupId = it->second->GetAgentId();
-	for( ; it != sm4ns3::Agent::getAgents().end(); it++){
+	for( ; it != sm4ns3::Agent::getAgents().end(); it++) {
 		wfd.members.push_back(it->second->GetAgentId());
 		WFD_Membership[it->second->GetAgentId()] = wfd.groupId;
 	}
@@ -216,11 +224,10 @@ bool WFD_Registration::doRoleAssignment(){
 
 
 
-
-
 //since we dont want tho include WFD_Group headers to serialize.h(and we dont know why!!!!)
 //we define a method here only.
-std::string WFD_Registration::makeGO_ClientPacket(){
+std::string sm4ns3::WFD_Registration::makeGO_ClientPacket()
+{
 	//First make the single message.
 	Json::Value res;
 	sm4ns3::JsonParser::addDefaultMessageProps(res, "GOCLIENT");
@@ -256,47 +263,4 @@ void sm4ns3::WFD_Registration::makeGO_ClientArrayElement(unsigned int go, std::v
 }
 
 
-/*
- * step-1 do the role assignment by filling some containers local to this class
- * step-2 set proper variable at each agent telling him its role + fill in the corresponding GO or Client Node container
- * step-3 prepare a packet in json format about all agents group information.
- * step-4 send json string to simmobility
- * step-5 do ns3 protocol settings
- */
 
-bool WFD_Registration::WFD_Configuration(){
-	//	step-1 do the role assignment by filling some containers local to this class
-	if(!doRoleAssignment()) { return false;}
-	//	step-2 set proper variable at each agent telling him its role + fill in the corresponding GO or Client Node container
-	if(!doAgentInit()) { return false;}
-	NS_LOG_UNCOND("doAgentInit-done");
-	//	step-3 prepare a packet in json format about all agents group information.
-	const std::string msg = makeGO_ClientPacket();
-	NS_LOG_UNCOND("makeGO_ClientPacket-done\n'" << msg << "'\n");
-	//	step-4-send this information to simmobility
-	if (!m_broker->getConnection().send(msg)) {
-		return false;
-	}
-	//	step-5 do ns3 protocol settings
-	WFD_Agent::configAll();
-
-	return true;
-}
-
-bool WFD_Registration::start() {
-	NS_LOG_UNCOND("Starting WFD Registration");
-	if(!doConnect()) { return false;}
-	NS_LOG_UNCOND("WFD Registration-connect");
-	if(!doWhoAreYou()) { return false;}
-	NS_LOG_UNCOND("WFD Registration-whoareyou");
-	if(!doAGENTS_INFO()) { return false;}
-	NS_LOG_UNCOND("WFD Registration-agentInfo");
-	if(!WFD_Configuration()) { return false;}
-	NS_LOG_UNCOND("WFD_Configuration");
-	if(!doREADY()) { return false;}
-	NS_LOG_UNCOND("WFD Registration-ready");
-
-	return true;
-}
-
-} /* namespace sm4ns3 */

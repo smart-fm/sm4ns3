@@ -13,7 +13,7 @@
 #include <jsoncpp/json/json.h>
 
 #include "thread_safe_queue.h"
-#include "smb_message_factory_base.h"
+#include "handlers.h"
 #include "smb_connection.h"
 
 
@@ -29,7 +29,7 @@ public:
 
 class Broker : public BrokerBase{
 public:
-	Broker(const std::string& simmobility_address="localhost", const std::string& simmobility_port="6745");
+	Broker(const std::string& simmob_host="localhost", const std::string& simmob_port="6745");
 	virtual ~Broker();
 
 	//Overriding BrokerBase
@@ -37,8 +37,8 @@ public:
 
 private:
 	//Connection settings; host/port
-	std::string simmob_host;
-	std::string simmob_port;
+//	std::string simmob_host;
+//	std::string simmob_port;
 
 	sm4ns3::Connection conn;
 
@@ -62,7 +62,7 @@ private:
 //	sm4ns3::ThreadSafeQueue<std::string> m_incoming_conf;
 
 
-	sm4ns3::MessageFactory msgFactory;
+	sm4ns3::HandlerLookup handleLookup;
 
 	//I/O needs to go in its own thread.
 	ns3::SystemThread iorun_thread;
@@ -80,7 +80,6 @@ public:
 	void processIncoming();
 	void sendOutgoing();
 	bool parsePacket(const std::string &input);
-	void setSimmobilityConnectionPoint(std::string,std::string);
 
 	sm4ns3::Connection & getConnection();
 };

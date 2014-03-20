@@ -8,15 +8,14 @@
 #include "ns3/net-device-container.h"
 #include "ns3/log.h"
 
+#include <map>
 #include <vector>
-#include <boost/unordered_map.hpp>
-#include<boost/shared_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include "ns3/vector.h"
 
 #include "smb_base_wifi.h"
 #include "smb_base_ip.h"
 #include "smb_base_mobility.h"
-#include "smb_message_factory_base.h"
 
 namespace ns3 {
 class Ipv4InterfaceContainer;
@@ -58,8 +57,8 @@ public:
 	ns3::InetSocketAddress* m_isa;
 
 
-    //	all agents
-    static boost::unordered_map<unsigned int,ns3::Ptr<Agent> > m_all_agents; //<m_AgentId, Agent*>
+	//All agents, sorted by agent ID
+	static std::map<unsigned int,ns3::Ptr<Agent> > AllAgents;
 
     /// agent factory(the best place to keep this factory is here itself(or may be a singleton)
 //    static sm4ns3::BaseFactory<Agent*> m_agentFactory;
@@ -91,7 +90,7 @@ public:
 	void ReceivePacket (ns3::Ptr<ns3::Socket> socket);
 //	//	destructor
 	virtual ~Agent();
-    static boost::unordered_map<unsigned int,ns3::Ptr<Agent> > &getAgents();
+    static std::map<unsigned int,ns3::Ptr<Agent> > &getAgents();
     static ns3::Ptr<Agent>& getAgent(unsigned int);
 	//	add agents
 	static void AddAgent(unsigned int , ns3::Ptr<Agent>);
