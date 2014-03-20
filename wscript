@@ -19,6 +19,7 @@ def build(bld):
         'model/smb_base_wifi.cc',
         'model/smb_base_mobility.cc',
         'model/smb_base_ip.cc',
+        'model/network/smb_session.cc',
         'model/message/handlers.cc',
         'model/message/serialize.cc',
         'roadrunner_testing/smb_roadrunner_baseline.cc',
