@@ -140,8 +140,11 @@ void sm4ns3::Broker::pause()
 		if (!m_pause) {
 			//Time to act.
 			m_pause = true;
-	
 			NS_LOG_DEBUG( "Simulation UNpaused" );
+			if(!conn.isOpen()) {
+				std::cout <<"Connection not good; exiting.\n";
+				return;
+			}
 
 			processIncoming();
 			NS_LOG_DEBUG( "Broker::processIncoming() done" );
@@ -224,6 +227,12 @@ void sm4ns3::Broker::sendOutgoing() {
 //return value will tell you whether notify or not
 bool sm4ns3::Broker::parsePacket(const std::string &input)
 {
+	//End of stream reached?
+	if(input.empty()){
+		std::cout <<"Empty packet; ending simulation.\n";
+		return true;
+	}
+
 	//Let the serializer handle the heavy lifting.
 	std::vector<Json::Value> temp;
 	if (!JsonParser::deserialize(input, temp)) {

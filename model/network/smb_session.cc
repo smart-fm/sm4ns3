@@ -24,6 +24,12 @@ bool sm4ns3::Session::isOpen() const
 	return socket_.is_open();
 }
 
+void sm4ns3::Session::closeSocket() 
+{
+	socket_.close();
+}
+
+
 bool sm4ns3::Session::write(std::string& t)
 {
 	// Format the header.

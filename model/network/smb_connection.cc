@@ -46,6 +46,7 @@ void sm4ns3::Connection::async_receive()
 {
 	if(!isOpen()) { throw std::runtime_error("Connection is down, reading will Fail"); }
 
+	incomingMessage = "";
 	m_session->async_read(incomingMessage, boost::bind(&Connection::readHandler, this, boost::asio::placeholders::error));
 }
 
@@ -53,7 +54,13 @@ void sm4ns3::Connection::readHandler(const boost::system::error_code& e)
 {
 	if (e) {
 		std::cout <<"Read Failed with error: " << e.message() <<"\n";
-		return;
+		if(e.message() == "End of file") {
+			//We can handle this; no need to return.
+			std::cout <<"EOF on incomingMessage= '" << incomingMessage << "'\n";
+			m_session->closeSocket(); 
+		} else {
+			return;
+		}
 	}
 
 	broker->onMessageReceived(incomingMessage);

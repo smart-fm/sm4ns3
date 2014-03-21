@@ -40,6 +40,9 @@ public:
 	///Is this Session's socket open?
 	bool isOpen() const;
 
+	///Close this socket.
+	void closeSocket();
+
 	/// Synchronously write a data structure to the socket.
 	bool write(std::string& t);
 
