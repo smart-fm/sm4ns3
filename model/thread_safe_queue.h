@@ -29,6 +29,9 @@ public:
 	///Returns the size of the queue
 	int size() const;
 
+	///Remove all items in the queue (used for testing)
+	void clear();
+
 private:
 	std::queue<T> messageList;
 	ns3::SystemMutex mutex;
@@ -70,4 +73,14 @@ int sm4ns3::ThreadSafeQueue<T>::size() const
 
 	return messageList.size();
 }
+
+template<class T>
+void sm4ns3::ThreadSafeQueue<T>::clear()
+{
+	ns3::CriticalSection lock(mutex);
+
+	messageList = std::queue<T>();
+}
+
+
 

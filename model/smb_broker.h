@@ -4,17 +4,19 @@
 
 #pragma once
 
+#include "smb_connection.h"
+
 #include <iostream>
+
+#include <boost/asio/io_service.hpp>
+
+#include <jsoncpp/json/json.h>
 
 #include "ns3/system-mutex.h"
 #include "ns3/system-thread.h"
 
-#include <boost/asio/io_service.hpp>
-#include <jsoncpp/json/json.h>
-
 #include "thread_safe_queue.h"
 #include "handlers.h"
-#include "smb_connection.h"
 
 
 
@@ -52,10 +54,6 @@ private:
 	ns3::SystemMutex mutex_pause;
 	bool m_pause;
 
-	//Since both threads (network+main) interact with these message buffers, we use a ThreadSafeQueue to safely access them.
-	ThreadSafeQueue<Json::Value> m_incoming;
-	ThreadSafeQueue<Json::Value> m_outgoing;
-
 	//Used to find the correct handler to deal with messages (by type)
 	sm4ns3::HandlerLookup handleLookup;
 
@@ -63,6 +61,11 @@ private:
 	boost::asio::io_service io_service;
 	ns3::SystemThread iorun_thread;
 	void run_io_service();
+
+protected:
+	//Since both threads (network+main) interact with these message buffers, we use a ThreadSafeQueue to safely access them.
+	ThreadSafeQueue<Json::Value> m_incoming;
+	ThreadSafeQueue<Json::Value> m_outgoing;
 
 public:
 	//TODO: Surely we can avoid these.

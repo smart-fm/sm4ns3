@@ -51,6 +51,7 @@ void sm4ns3::AgentsInfoHandler::handle(const Json::Value& msg, Broker* broker) c
 	//Process add/remove agent requestss
 	for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
 		ns3::Ptr<Agent> agent = ns3::CreateObject<sm4ns3::Agent>(*it, broker);
+		agent->init();
 		sm4ns3::Agent::AddAgent(*it, agent);
 	}
 	for (std::vector<unsigned int>::const_iterator it=aInfo.remAgentIds.begin(); it!=aInfo.remAgentIds.end(); it++) {

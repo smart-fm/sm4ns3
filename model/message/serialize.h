@@ -63,6 +63,15 @@ public:
 	//Serialize a CLIENT_MESSAGES_DONE message.
 	static Json::Value makeClientDone();
 
+	//Serialize an AGENTS_INFO message (used in the trace runner).
+	static Json::Value makeAgentsInfo(const std::vector<unsigned int>& addAgents, const std::vector<unsigned int>& remAgents);
+
+	//Serialize an ALL_LOCATIONS message (used in the trace runner).
+	static Json::Value makeAllLocations(const std::map<unsigned int, DPoint>& allLocations);
+
+	//Serialize a MULTICAST message (used in the trace runner).
+	//(The actual client simply mutates the incoming MULTICAST message, so this function is only used in trace.)
+	static Json::Value makeMulticast(unsigned int sendAgentId, const std::vector<unsigned int>& receiveAgentIds, const std::string& data);
 };
 
 }

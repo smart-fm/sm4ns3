@@ -233,4 +233,64 @@ Json::Value sm4ns3::JsonParser::makeClientDone()
 	return res;
 }
 
+Json::Value sm4ns3::JsonParser::makeAgentsInfo(const std::vector<unsigned int>& addAgents, const std::vector<unsigned int>& remAgents)
+{
+	Json::Value res;
+	addDefaultMessageProps(res, "AGENTS_INFO");
+	res["SENDER_TYPE"] = "SIMMOBILITY"; //...but override this one.
+	
+	//Add all "ADD" agents.
+	Json::Value singleAgent;
+	for (std::vector<unsigned int>::const_iterator it=addAgents.begin(); it!=addAgents.end(); it++) {
+		singleAgent["AGENT_ID"] = *it;
+		res["ADD"].append(singleAgent);
+	}
+
+	//Add all "REMOVE" agents.
+	for (std::vector<unsigned int>::const_iterator it=remAgents.begin(); it!=remAgents.end(); it++) {
+		singleAgent["AGENT_ID"] = *it;
+		res["REMOVE"].append(singleAgent);
+	}	
+
+	return res;
+}
+
+
+Json::Value sm4ns3::JsonParser::makeAllLocations(const std::map<unsigned int, DPoint>& allLocations)
+{
+	Json::Value res;
+	addDefaultMessageProps(res, "ALL_LOCATIONS_DATA");
+	res["SENDER_TYPE"] = "SIMMOBILITY"; //...but override this one.
+
+	//Add all "LOCATIONS"
+	Json::Value singleAgent;
+	for (std::map<unsigned int, DPoint>::const_iterator it=allLocations.begin(); it!=allLocations.end(); it++) {
+		singleAgent["ID"] = it->first;
+		singleAgent["x"] = it->second.x;
+		singleAgent["y"] = it->second.y;
+		res["LOCATIONS"].append(singleAgent);
+	}
+
+	return res;
+}
+
+
+Json::Value sm4ns3::JsonParser::makeMulticast(unsigned int sendAgentId, const std::vector<unsigned int>& receiveAgentIds, const std::string& data)
+{
+	Json::Value res;
+	addDefaultMessageProps(res, "MULTICAST");
+	res["SENDER_TYPE"] = "APP"; //...but override this one.
+	res["SENDER"] = "106"; //...for some reason, this is NOT set to sendAgentId
+
+	//Add the DATA section
+	res["DATA"] = data;
+
+	//Add all "RECIPIENTS"
+	for (std::vector<unsigned int>::const_iterator it=receiveAgentIds.begin(); it!=receiveAgentIds.end(); it++) {
+		res["RECIPIENTS"].append(*it);
+	}
+
+	return res;
+}
+
 

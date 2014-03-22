@@ -12,6 +12,7 @@ def build(bld):
     ]
     
     module.source = [
+        'model/profile_builder.cc',
         'model/smb_broker.cc',
         'model/network/registration.cc',
         'model/network/smb_connection.cc',
@@ -33,6 +34,7 @@ def build(bld):
     headers = bld(features='ns3header')
     headers.module = 'sm4ns3'
     headers.source = [
+        'model/profile_builder.h',
         'model/smb_broker.h',
         'model/network/registration.h',
         'model/network/smb_connection.h',

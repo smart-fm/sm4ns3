@@ -10,13 +10,14 @@
 
 #pragma once
 
+#include <boost/asio.hpp>
+
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <sstream>
 #include <vector>
 
-#include <boost/asio.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>

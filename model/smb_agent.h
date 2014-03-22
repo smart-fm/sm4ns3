@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "ns3/ptr.h"
 #include "ns3/node-container.h"
 #include "ns3/net-device-container.h"
 #include "ns3/log.h"
@@ -32,16 +33,16 @@ class BrokerBase;
 
 class Agent : public ns3::Object {
 public:
-	//	constructor
-	Agent(int m_AgentId_, BrokerBase* broker);
-	Agent();
+	Agent(int m_AgentId_, BrokerBase* broker); ///<Normal use
+	Agent(int m_AgentId_, ns3::Ptr<ns3::Node> node, BrokerBase* broker);  ///<Used by the trace program.
+	Agent(); ///<Requirement for container storage.
 	virtual ~Agent();
 
 	/// Override TypeId.
 	static ns3::TypeId GetTypeId(void);
 
 	void DevRxTrace(std::string context, ns3::Ptr<const ns3::Packet> p);
-	virtual void init();
+	virtual void init(ns3::Ptr<ns3::Node> = NULL);
 
 	static void SetBasicNetworking(
 		const ns3::WifiHelper &wifi = ns3::WifiHelper::Default(),
@@ -89,6 +90,9 @@ public:
 	///\returns whatever the socket->Send returns
 	int SendTo(ns3::Ptr<Agent> agent, ns3::Ptr<ns3::Packet> packet);
 
+	//Used for trace file re-running.
+	void initSocket();
+
 public:
 	//All agents, sorted by agent ID
 	static std::map<unsigned int,ns3::Ptr<Agent> > AllAgents;
@@ -103,8 +107,11 @@ protected:
 
 	ns3::NodeContainer nc;
 	ns3::NetDeviceContainer ndc ;
+
+public:
 	ns3::Ipv4InterfaceContainer iic;
 
+protected:
 	static BaseWifi m_wifi;
 	static BaseMobility m_mobility;
 	static BaseIP m_ip;
@@ -128,7 +135,7 @@ public:
 	};
 
 public:
-	void init();
+	virtual void init(ns3::Ptr<ns3::Node> = NULL);
 	AgentRole getRole();
 	void setRole(AgentRole);
 

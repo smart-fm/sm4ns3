@@ -14,6 +14,11 @@
 using namespace ns3;
 using namespace sm4ns3;
 
+namespace {
+ns3::TypeId socket_tid = ns3::TypeId::LookupByName("ns3::UdpSocketFactory");
+} //End unnamed namespace
+
+
 namespace sm4ns3 {
 //todo: for now and for the reason I dont know yet, I need to initialize like this otherwise m_wifi will not be initialized properly
 BaseWifi temp;
@@ -78,14 +83,16 @@ ns3::Ipv4Address GetPacketSource(Ptr<Packet> packet)
 /////////////////////////////////////////////////////
 
 
-sm4ns3::Agent::Agent(int m_AgentId_, BrokerBase* broker) : broker(broker), m_AgentId(m_AgentId_)
+sm4ns3::Agent::Agent(int m_AgentId_, BrokerBase* broker) : broker(broker), m_AgentId(m_AgentId_), m_isa(NULL)
 {
-	m_isa = NULL;
 }
 
-sm4ns3::Agent::Agent()
+sm4ns3::Agent::Agent(int m_AgentId_, Ptr<Node> node, BrokerBase* broker) : broker(broker), m_AgentId(m_AgentId_), m_node(node), m_isa(NULL)
 {
-	m_isa = NULL;
+}
+
+sm4ns3::Agent::Agent() : m_isa(NULL)
+{
 }
 
 sm4ns3::Agent::~Agent() 
@@ -94,6 +101,14 @@ sm4ns3::Agent::~Agent()
 		delete m_isa;
 		m_isa = NULL;
 	}
+}
+
+void sm4ns3::Agent::initSocket()
+{
+	m_socket = ns3::Socket::CreateSocket(m_node, socket_tid);
+	m_socket->SetRecvCallback(MakeCallback(&Agent::ReceivePacket, this));
+	m_isa = 0;
+	Bind();
 }
 
 
@@ -127,10 +142,16 @@ void sm4ns3::Agent::DevRxTrace(std::string context, Ptr<const Packet> p)
 	std::cout << "Inside Agent::DevRxTrace" << " " << m_AgentId << std::endl;
 }
 
-void sm4ns3::Agent::init()
+void sm4ns3::Agent::init(Ptr<Node> node)
 {
 	m_isa = NULL;
-	nc.Create(1);
+
+	if (node) {
+		nc.Add(node);
+	} else {
+		nc.Create(1);
+	}
+
 	ndc = m_wifi.Install(nc);
 	m_mobility.Install(nc);
 	iic = m_ip.Install(nc, ndc);
@@ -304,10 +325,14 @@ void sm4ns3::WFD_Agent::setRole(AgentRole role_)
 }
 
 
-void sm4ns3::WFD_Agent::init()
+void sm4ns3::WFD_Agent::init(Ptr<Node> node)
 {
 	NS_LOG_UNCOND("Inside WFD_Agent::init");
-	m_wfd_node = ns3::CreateObject<ns3::Node> ();
+	if(node) {
+		m_wfd_node = node;
+	} else {
+		m_wfd_node = ns3::CreateObject<ns3::Node> ();
+	}
 
 	// fill in proper container to manage the nodes of the LAN.  We need
 	// at least three containers here; one with all of the client nodes,

@@ -26,8 +26,6 @@ unsigned int sm4ns3::Broker::global_pckt_cnt;
 NS_LOG_COMPONENT_DEFINE("SimMobility");
 
 sm4ns3::Broker::Broker(const string& simmob_host, const string& simmob_port) :
-//	simmob_host(simmobility_address),
-//	simmob_port(simmobility_port),
 	conn(io_service, this, simmob_host, simmob_port),
 	iorun_thread(ns3::SystemThread(ns3::MakeNullCallback<void>()))
 {
