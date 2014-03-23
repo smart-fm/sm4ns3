@@ -23,7 +23,7 @@ def build(bld):
         'model/network/smb_session.cc',
         'model/message/handlers.cc',
         'model/message/serialize.cc',
-        'roadrunner_testing/smb_roadrunner_baseline.cc',
+        'model/testing/rr_baseline.cc',
     ]
 
     #TODO: The first two should go.
@@ -49,7 +49,7 @@ def build(bld):
         'model/message/handlers.h',
         'model/thread_safe_queue.h',
         'model/message/serialize.h',
-        'roadrunner_testing/smb_roadrunner_baseline.h',
+        'model/testing/rr_baseline.h',
     ]
 
     #Build examples directory.
