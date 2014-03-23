@@ -17,6 +17,7 @@ using std::string;
 string application = "Default";
 string trace = "./src/simmobility/roadrunner_testing/trace_with_time.txt";
 string out = "./src/simmobility/roadrunner_testing/out.txt";
+std::string protocol = "80211b";
 unsigned int nAgent = 10000;
 bool disable_communication = false;
 bool disable_location_update = false;
@@ -32,6 +33,7 @@ void parse_command_line(int argc, char* argv[])
 	cmd.AddValue("application", "current running application", application);
 	cmd.AddValue("trace", "the trace file to read from", trace);
 	cmd.AddValue("nAgent", "Number of agents in the simulation", nAgent);
+	cmd.AddValue("protocol", "Protocol in use (80211p,80211b)", protocol);
 	cmd.AddValue("output", "output file", out);
 	cmd.AddValue("disable-communication", "Ignore Multicast lines", disable_communication);	
 	cmd.AddValue("disable-location-update", "Ignore location(position) update lines", disable_location_update);
@@ -58,7 +60,7 @@ int main(int argc, char *argv[])
 	Config::SetDefault("ns3::WifiRemoteStationManager::NonUnicastMode",StringValue(phyMode));
 
 	std::cout <<"Starting Broker\n";
-	sm4ns3::RoadRunnerBaseLine broker(nAgent, out,disable_communication,disable_location_update);
+	sm4ns3::RoadRunnerBaseLine broker(protocol, nAgent, out,disable_communication,disable_location_update);
 	if (!broker.start(trace)) {
 		std::cout <<"Broker Start Failed";
 	}

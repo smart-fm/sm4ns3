@@ -40,7 +40,7 @@ struct TimeTick {
 
 class RoadRunnerBaseLine : public sm4ns3::Broker {
 public:
-	RoadRunnerBaseLine(unsigned int nof_agents, const std::string& outputFile, bool disable_communication, bool disable_location_update);
+	RoadRunnerBaseLine(const std::string& protocol, unsigned int nof_agents, const std::string& outputFile, bool disable_communication, bool disable_location_update);
 	~RoadRunnerBaseLine();
 
 	void sendOutgoing();
@@ -73,6 +73,9 @@ private:
 	//Timing!
 	clock_t start_time;
 	clock_t end_time;
+
+	//Current protocol (e.g., 802.11p)
+	std::string protocol;
 
 	static ns3::NodeContainer RRNC;
 

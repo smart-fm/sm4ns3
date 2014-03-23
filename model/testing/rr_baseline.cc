@@ -16,6 +16,8 @@
 #include "ns3/mobility-module.h"
 #include "ns3/config-store-module.h"
 #include "ns3/wifi-module.h"
+#include "ns3/wave-mac-helper.h"
+#include "ns3/wifi-80211p-helper.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
@@ -33,7 +35,8 @@ using namespace ns3;
 ns3::NodeContainer sm4ns3::RoadRunnerBaseLine::RRNC;
 
 
-sm4ns3::RoadRunnerBaseLine::RoadRunnerBaseLine(unsigned int nof_agents, const std::string& outputFile, bool disable_communication, bool disable_location_update) :
+sm4ns3::RoadRunnerBaseLine::RoadRunnerBaseLine(const std::string& protocol, unsigned int nof_agents, const std::string& outputFile, bool disable_communication, bool disable_location_update) :
+	protocol(protocol), interval(0),
 	disable_communication(disable_communication), disable_location_update(disable_location_update),
 	maxNOFAgents(nof_agents)
 {
@@ -82,27 +85,59 @@ void sm4ns3::RoadRunnerBaseLine::createNodes()
 	//Initialize our Nodes.
 	RRNC.Create(maxNOFAgents);
 
-	//Set up WiFi
-	WifiHelper wifi;
-	wifi.SetStandard(ns3::WIFI_PHY_STANDARD_80211b);
-	
-	NqosWifiMacHelper mac = NqosWifiMacHelper::Default ();
-	wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager", "DataMode", StringValue ("DsssRate1Mbps"), "ControlMode",ns3::StringValue ("DsssRate1Mbps"));
+	NetDeviceContainer rrDevices;
+	if (protocol == "80211b") {
+		//channel
+		ns3::YansWifiChannelHelper wifiChannel;
+		wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
 
-	YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default ();
-	wifiPhy.Set("RxGain", ns3::DoubleValue(0));
-	wifiPhy.SetPcapDataLinkType(ns3::YansWifiPhyHelper::DLT_IEEE802_11_RADIO);
+		// The below FixedRssLossModel will cause the rss to be fixed regardless
+		// of the distance between the two stations, and the transmit power
+		wifiChannel.AddPropagationLoss("ns3::FixedRssLossModel", "Rss", ns3::DoubleValue(-80));
 
-	ns3::YansWifiChannelHelper wifiChannel;
-	wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
+		//phy
+		YansWifiPhyHelper wifiPhy = YansWifiPhyHelper::Default();
+		wifiPhy.Set("RxGain", ns3::DoubleValue(0));
+		wifiPhy.SetPcapDataLinkType(ns3::YansWifiPhyHelper::DLT_IEEE802_11_RADIO);
+		wifiPhy.SetChannel(wifiChannel.Create());
 
-	// The below FixedRssLossModel will cause the rss to be fixed regardless
-	// of the distance between the two stations, and the transmit power
-	wifiChannel.AddPropagationLoss("ns3::FixedRssLossModel", "Rss", ns3::DoubleValue(-80));
-	wifiPhy.SetChannel (wifiChannel.Create ());
-	mac.SetType ("ns3::AdhocWifiMac");
+		//mac
+		NqosWifiMacHelper mac = NqosWifiMacHelper::Default();
+		mac.SetType("ns3::AdhocWifiMac");
 
-	NetDeviceContainer rrDevices = wifi.Install (wifiPhy, mac, RRNC);
+		//wifi
+		WifiHelper wifi;
+		wifi.SetStandard(ns3::WIFI_PHY_STANDARD_80211b);
+		wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("DsssRate1Mbps"), "ControlMode", ns3::StringValue("DsssRate1Mbps"));
+		rrDevices = wifi.Install(wifiPhy, mac, RRNC);
+	} else if(protocol == "80211p") {
+		//channel
+		ns3::YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
+
+		//required setting:
+		wifiChannel.AddPropagationLoss("ns3::FixedRssLossModel", "Rss", ns3::DoubleValue(-80));
+		Ptr<YansWifiChannel> channel = wifiChannel.Create ();
+
+		//phy
+		YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
+		wifiPhy.Set("RxGain", ns3::DoubleValue(0));
+		wifiPhy.SetPcapDataLinkType(ns3::YansWifiPhyHelper::DLT_IEEE802_11_RADIO);
+		wifiPhy.SetChannel (channel);
+
+		// ns-3 supports generate a pcap trace
+		wifiPhy.SetPcapDataLinkType (YansWifiPhyHelper::DLT_IEEE802_11_RADIO);
+
+		//mac
+		NqosWaveMacHelper wifi80211pMac = NqosWaveMacHelper::Default ();
+
+		//wifi
+		Wifi80211pHelper wifi80211p = Wifi80211pHelper::Default ();
+		std::string phyMode ("OfdmRate6MbpsBW10MHz");
+		wifi80211p.SetRemoteStationManager ("ns3::ConstantRateWifiManager", "DataMode", StringValue(phyMode), "ControlMode", StringValue(phyMode));
+		rrDevices = wifi80211p.Install (wifiPhy, wifi80211pMac, RRNC);
+	} else{
+		throw std::runtime_error("Unknown Wifi Protocol Specified");
+	}
 
 	//Internet: Add the IPv4 protocol stack to the nodes in our container
 	InternetStackHelper internet;
