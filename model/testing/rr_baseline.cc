@@ -34,26 +34,19 @@ ns3::NodeContainer sm4ns3::RoadRunnerBaseLine::RRNC;
 
 
 sm4ns3::RoadRunnerBaseLine::RoadRunnerBaseLine(unsigned int nof_agents, const std::string& outputFile, bool disable_communication, bool disable_location_update) :
-	currTime(0), nextTime(0), disable_communication(disable_communication), disable_location_update(disable_location_update),
-	temp_nof_comm(0), maxNOFAgents(nof_agents)
+	disable_communication(disable_communication), disable_location_update(disable_location_update),
+	maxNOFAgents(nof_agents)
 {
 	MessageMap["multicast"] = RoadRunnerBaseLine::MULTICAST;
 	MessageMap["add_agent"] = RoadRunnerBaseLine::ADD;
 	MessageMap["update_agent"] = RoadRunnerBaseLine::UPDATE;
 
-	RealtimeInterval_in_mill = 0;
 	ProfileBuilder::InitLogFile(outputFile);
 	profiler = new ProfileBuilder();
 }
 
 sm4ns3::RoadRunnerBaseLine::~RoadRunnerBaseLine()
 {
-	try {
-		std::cout <<"Destructing RoadRunnerBaseLine\n";
-		//fileReader.join();
-	} catch ( const boost::thread_interrupted& ) {
-		std::cout <<"Warning: interrupted thread.\n"; //This might be common.
-	}
 	delete profiler;
 }
 
@@ -64,41 +57,23 @@ void sm4ns3::RoadRunnerBaseLine::sendOutgoing()
 
 void sm4ns3::RoadRunnerBaseLine::pushToQueue()
 {
-	//Create a fake AgentsInfo message with ADD agents.
-	if(!agents_to_add.empty()) {
-		std::vector<unsigned int> rem;
-		Json::Value msg = JsonParser::makeAgentsInfo(agents_to_add, rem);
-
-		//Push it to the broker's queue
-		m_incoming.push(msg);
-	}
+	//NOTE: The "add_agent" list is maintained, but it seems that this list is NOT used to generate "AddAgent" messages (these are instead done at initialization time, in parseLine()).
 
 	//Create a fake ALL_LOCATIONS_DATA message with agent location updates.
-	if(!agentsLocation.empty()) {
-		Json::Value msg = JsonParser::makeAllLocations(agentsLocation);
+	if (!currTick->second.update_agent.empty()) {
+		Json::Value msg = JsonParser::makeAllLocations(currTick->second.update_agent);
 
 		//Push it to the broker's queue
 		m_incoming.push(msg);
 	}
 
 	//Create fake Multicast messages.
-	if(multicasts.size()){
-		for (std::list<multicast_data>::const_iterator it=multicasts.begin(); it!=multicasts.end(); it++) {
-			Json::Value msg = JsonParser::makeMulticast(it->sending_agent, it->recipient_agents, it->data);
+	for (std::vector<TickMulticast>::const_iterator mcIt=currTick->second.multicast.begin(); mcIt!=currTick->second.multicast.end(); mcIt++) {
+		Json::Value msg = JsonParser::makeMulticast(mcIt->sendAgId, mcIt->receiveAgId, mcIt->mcData);
 
-			//Push it to the broker's queue
-			m_incoming.push(msg);
-		}
+		//Push it to the broker's queue
+		m_incoming.push(msg);
 	}
-}
-
-
-void sm4ns3::RoadRunnerBaseLine::reset()
-{
-	agents_to_add.clear();
-	agentsLocation.clear();
-	multicasts.clear();
-	currTime = nextTime;
 }
 
 
@@ -159,12 +134,6 @@ void sm4ns3::RoadRunnerBaseLine::createNodes()
 	}
 
 	std::cout <<"Size of Node Container " <<Agent::getAgents().size() <<"\n";
-
-	//TODO: replace with Profiler line.
-	prevRealTimeTime = currRealTime;
-	gettimeofday(&currRealTime ,0);
-	RealtimeInterval_in_mill =  ((currRealTime.tv_sec) * 1000 + (currRealTime.tv_usec) / 1000) - ((prevRealTimeTime.tv_sec) * 1000 + (prevRealTimeTime.tv_usec) / 1000) ; // convert tv_sec & tv_usec to millisecond//		
-	NS_LOG_UNCOND("Agent Creation ended at : " << RealtimeInterval_in_mill << " ms");
 }
 
 
@@ -180,11 +149,6 @@ bool sm4ns3::RoadRunnerBaseLine::start(std::string fileName)
 	//Prepare to start the simulation.
 	prevTick = trace_time_ticks.end(); 
 	currTick = trace_time_ticks.begin(); 
-			
-	//real time
-	prevRealTimeTime = currRealTime;
-	gettimeofday(&currRealTime ,0);
-	RealtimeInterval_in_mill =  ((currRealTime.tv_sec) * 1000 + (currRealTime.tv_usec) / 1000) - ((prevRealTimeTime.tv_sec) * 1000 + (prevRealTimeTime.tv_usec) / 1000) ; // convert tv_sec & tv_usec to millisecond
 
 	//Profiled time starts here.
 	profiler->logSiMobilityBegin();
@@ -269,18 +233,16 @@ void sm4ns3::RoadRunnerBaseLine::parseLine(const std::string &line)
 	case UPDATE: {
 		if(disable_location_update) { break; }
 		if (agent_limit.find(agId)==agent_limit.end()) { break; }
-		TickUpdate res;
-		res.agId = agId;
 
 		//our desirable information("agent_id") start from token[2] + x,y
 		//our desirable information("agent_id") is in token[2]
 		//x:token[3], y:token[4]
 		std::string xStr = tokens[3].substr(tokens[3].find(":")+1 , tokens[3].size() - 1);
 		std::string yStr = tokens[4].substr(tokens[4].find(":")+1 , tokens[4].size() - 1);
-		res.xPos = boost::lexical_cast<unsigned int>(xStr);
-		res.yPos = boost::lexical_cast<unsigned int>(yStr);
+		double xPos = boost::lexical_cast<double>(xStr);
+		double yPos = boost::lexical_cast<double>(yStr);
 
-		trace_time_ticks[currTime].update_agent.push_back(res);
+		trace_time_ticks[currTime].update_agent[agId] = DPoint(xPos, yPos);
 		break;
 	}
 
@@ -288,7 +250,7 @@ void sm4ns3::RoadRunnerBaseLine::parseLine(const std::string &line)
 		if(disable_communication){ break; }
 		if (agent_limit.find(agId)==agent_limit.end()) { break; }
 		TickMulticast res;
-		res.agId = agId;
+		res.sendAgId = agId;
 
 		//Get the recepients from token[3]
 		std::string recipientsStr = tokens[3].substr(tokens[3].find(":")+1 , tokens[3].size() - 1);
@@ -297,7 +259,7 @@ void sm4ns3::RoadRunnerBaseLine::parseLine(const std::string &line)
 
 		for (std::vector<std::string>::const_iterator it=tempVec.begin(); it!=tempVec.end(); it++) {
 			if (!it->empty()) {
-				res.agentIds.push_back(boost::lexical_cast<unsigned int>(*it));
+				res.receiveAgId.push_back(boost::lexical_cast<unsigned int>(*it));
 			}
 		}
 
@@ -322,48 +284,25 @@ void sm4ns3::RoadRunnerBaseLine::pause()
 		std::cout <<"Time ticks done: " <<(absTick*100)/trace_time_ticks.size() <<"%" << std::endl;
 	}
 
-	//Process all updates/messages FIRST.
-	for (std::vector<TickUpdate>::const_iterator upIt=currTick->second.update_agent.begin(); upIt!=currTick->second.update_agent.end(); upIt++) {
-		if(agentsList.find(upIt->agId) == agentsList.end()){ continue; }
-
-		agentsLocation[upIt->agId] = DPoint(upIt->xPos, upIt->yPos);
-	}
-	for (std::vector<TickMulticast>::const_iterator mcIt=currTick->second.multicast.begin(); mcIt!=currTick->second.multicast.end(); mcIt++) {
-		if(agentsList.find(mcIt->agId) == agentsList.end()){ continue; }
-
-		std::vector<unsigned int> agentIds;
-		for (std::vector<unsigned int>::const_iterator recvIt=mcIt->agentIds.begin(); recvIt!=mcIt->agentIds.end(); recvIt++) {
-			if(agentsList.find(*recvIt) == agentsList.end()){
-				continue;
-			}
-			agentIds.push_back(*recvIt);
-		}
-		multicasts.insert(multicasts.begin(), multicast_data(mcIt->agId,agentIds,mcIt->mcData));
-	}
-
-	//Set the interval (kind of hackish)
-	if (prevTick==trace_time_ticks.end()) {
-		std::map<unsigned int, TimeTick>::const_iterator nextTick = currTick;
-		interval = ((++nextTick)->first) - currTick->first; //Estimate
-	} else {
-		interval = currTick->first - prevTick->first;
-	}
+	//Push all messages for this time tick.
+	pushToQueue();
 
 	//Increment.
 	prevTick = currTick;
 	currTick++;
 
-	//Finally, announce the time tick.
-	pushToQueue();
+	//Set the interval. The very last time tick will just use the previous interval value, which is probably correct.
+	if (currTick!=trace_time_ticks.end()) {
+		interval = currTick->first - prevTick->first;
+	}
+
+	//Get the tick ID from the interval
+	unsigned int tickId = prevTick->first/interval; //sort of an approximation
 
 	//Now, react to all this data we just pushed.
-	profiler->logTickBegin(currTick->first/interval, agentsLocation.size(),temp_nof_comm);
+	profiler->logTickBegin(tickId, prevTick->second.update_agent.size(), 0);
 	Broker::processIncoming();
-	profiler->logTickEnd(currTick->first/interval, agentsLocation.size(),temp_nof_comm);
-
-	//some resettings
-	temp_nof_comm = 0;
-	reset();//changing its place in order to get their statistics first(agent size)
+	profiler->logTickEnd(tickId, prevTick->second.update_agent.size(), 0);
 
 	//plan for the next tick
 	if (currTick != trace_time_ticks.end()) {
