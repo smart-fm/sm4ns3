@@ -10,7 +10,7 @@
 #include "ns3/log.h"
 #include "message_base.h"
 #include "messages.h"
-
+#include "bundle_version.h"
 
 namespace sm4ns3 {
 
@@ -25,7 +25,8 @@ class JsonParser {
 public:
 	//Serialize a vector of messages (representing the DATA section of an output set) into
 	//a string representing these messages combined with a packet header.
-	static bool serialize(const std::vector<Json::Value>& messages, std::string& res);
+	//This function ensures that the BundleHeader passed in remains up-to-date.
+	static bool serialize(const std::vector<Json::Value>& messages, BundleHeader& header, std::string& res);
 
 	//Deserialize a string containing a PACKET_HEADER and a DATA section into a vecot of JSON objects 
 	// representing the data section only. The PACKET_HEADER is dealt with internally.

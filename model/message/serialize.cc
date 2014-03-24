@@ -16,23 +16,37 @@ std::string size_to_string(size_t dat) {
 } //End anon namespace
 
 
-bool sm4ns3::JsonParser::serialize(const std::vector<Json::Value>& messages, std::string& res)
+bool sm4ns3::JsonParser::serialize(const std::vector<Json::Value>& messages, BundleHeader& header, std::string& res)
 {
 	//Build the header.
-	Json::Value header;
-	header["NOF_MESSAGES"] = size_to_string(messages.size());
+	Json::Value pktHeader;
+	pktHeader["NOF_MESSAGES"] = size_to_string(messages.size());
+
+	//TEMPORARY: For now, we grab the sender ID from here.
+	std::string senderID;
 
 	//Build the data section.
 	Json::Value data;
 	for (std::vector<Json::Value>::const_iterator it=messages.begin(); it!=messages.end(); it++) {
 		data.append(*it);
+
+		if (senderID.empty() && it->isMember("SENDER")) {
+			senderID = (*it)["SENDER"].asString();
+		}
 	}
 
-	//Combine, return.
+	//Combine.
 	Json::Value root;
-	root["PACKET_HEADER"] = header;
+	root["PACKET_HEADER"] = pktHeader;
 	root["DATA"] = data;
 	res = Json::FastWriter().write(root);
+
+	//Reflect changes to the bundle header.
+	header.sendIdLen = senderID.size();
+	header.destIdLen = 1; //Sim Mobility always has ID 0.
+	header.messageCount = messages.size();
+	header.remLen = res.size();
+
 	return true;
 }
 

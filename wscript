@@ -24,9 +24,11 @@ def build(bld):
         'model/message/handlers.cc',
         'model/message/serialize.cc',
         'model/testing/rr_baseline.cc',
+        'model/bundle_version.cc',
     ]
 
-    #TODO: The first two should go.
+    #TODO: We should be able to remove the first two, and (maybe) embed the third in our code. 
+    #      Either that, or find a way to link these libraries in without modifying the core wscript file.
     module.use.append("BOOST_SYSTEM")
     module.use.append("BOOST_THREAD")
     module.use.append("JSONCPP")
@@ -50,6 +52,7 @@ def build(bld):
         'model/thread_safe_queue.h',
         'model/message/serialize.h',
         'model/testing/rr_baseline.h',
+        'model/bundle_version.h',
     ]
 
     #Build examples directory.

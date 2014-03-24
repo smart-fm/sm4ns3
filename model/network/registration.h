@@ -10,6 +10,7 @@ namespace sm4ns3 {
 
 //Forward declaration
 class BrokerBase;
+class BundleHeader;
 
 class Registration {
 public:
@@ -65,7 +66,7 @@ private:
 	bool doRoleAssignment();
 
 	///Create a json string of GO/Client information based on local containers
-	std::string makeGO_ClientPacket();
+	std::string makeGO_ClientPacket(sm4ns3::BundleHeader& head);
 
 	///Serialize part of a GOCLIENT message.
 	static void makeGO_ClientArrayElement(unsigned int go, std::vector<unsigned int> clients, Json::Value & output);

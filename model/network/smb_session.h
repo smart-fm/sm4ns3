@@ -23,6 +23,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 
+#include "bundle_version.h"
+
 namespace sm4ns3 {
 
 /***
@@ -45,14 +47,15 @@ public:
 	void closeSocket();
 
 	/// Synchronously write a data structure to the socket.
-	bool write(std::string& t);
+	bool write(const BundleHeader& header, std::string& t);
 
 	/// synchronously read a data structure from the socket.
 	bool read(std::string& t);
 
-	/// Asynchronously write a data structure to the socket.
-	template <typename Handler>
-	void async_write(std::string & t, Handler handler);
+	///Asynchronously write a data structure to the socket.
+	///TODO: Currently unused.
+	/*template <typename Handler>
+	void async_write(const BundleHeader& header, std::string & t, Handler handler);*/
 
 	/// Asynchronously read a data structure from the socket.
 	template <typename Handler>
@@ -60,7 +63,6 @@ public:
 
 
 private:
-
 	/// Handle a completed read of a message header. The handler is passed using
 	/// a tuple since boost::bind seems to have trouble binding a function object
 	/// created using boost::bind as a parameter.
@@ -71,20 +73,10 @@ private:
 	template <typename Handler>
 	void handle_read_data(const boost::system::error_code& e, std::string& t, boost::tuple<Handler> handler);
 
-	//Create a "version 0" (old-style) header, consisting of the data's length as an 8-byte hex (text) string.
-	std::string make_bundle_header_v0(const std::string& data);
-
-	//Read a "version 0" (old-style) header, returning the length of the remaining data section in bytes.
-	unsigned int read_bundle_header_v0(const std::string& header);
-
 
 private:
 	/// The underlying socket.
 	boost::asio::ip::tcp::socket socket_;
-
-	/// The size of a fixed length header.
-	/// Fortunately, both v0 and v1 headers are 8 bytes.
-	enum { header_length = 8 };
 
 	/// Holds an outbound header.
 	std::string outbound_header_;
@@ -109,11 +101,12 @@ private:
 /////////////////////////////////////////////////
 
 
-template <typename Handler>
-void sm4ns3::Session::async_write(std::string & t, Handler handler)
+//TODO: Currently unused.
+/*template <typename Handler>
+void sm4ns3::Session::async_write(const BundleHeader& header, std::string & t, Handler handler)
 {
 	// Format the header.
-	outbound_header_ = make_bundle_header_v0(t);
+	outbound_header_ = BundleParser::make_bundle_header(header, t);
 	if (outbound_header_.empty()) {
 		// Something went wrong, inform the caller.
 		boost::system::error_code error(boost::asio::error::invalid_argument);
@@ -127,7 +120,7 @@ void sm4ns3::Session::async_write(std::string & t, Handler handler)
 	buffers.push_back(boost::asio::buffer(outbound_header_));
 	buffers.push_back(boost::asio::buffer(t));
 	boost::asio::async_write(socket_, buffers, handler);
-}
+}*/
 
 
 template <typename Handler>
@@ -148,7 +141,7 @@ void sm4ns3::Session::handle_read_header(const boost::system::error_code& e, std
 		boost::get<0>(handler)(e);
 	} else {
 		// Determine the length of the serialized data.
-		unsigned int remLen = read_bundle_header_v0(std::string(inbound_header_, header_length));
+		unsigned int remLen = BundleParser::read_bundle_header(std::string(inbound_header_, header_length)).remLen;
 		if (remLen == 0) {
 			// Header doesn't seem to be valid. Inform the caller.
 			boost::system::error_code error(boost::asio::error::invalid_argument);

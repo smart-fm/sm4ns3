@@ -4,11 +4,12 @@
 
 #pragma once
 
-#include "smb_session.h"
-
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/system/error_code.hpp>
+
+#include "smb_session.h"
+#include "bundle_version.h"
 
 namespace sm4ns3 {
 
@@ -30,7 +31,7 @@ public:
 	void async_receive();
 
 	//issues a write
-	bool send(std::string str);
+	bool send(const BundleHeader& header, std::string str);
 
 	//is the socket still working?
 	bool isOpen();

@@ -11,6 +11,7 @@
 #include "smb_connection.h"
 #include "serialize.h"
 #include "smb_broker.h"
+#include "bundle_version.h"
 
 
 sm4ns3::Registration::Registration(BrokerBase* broker, std::string app) :
@@ -85,9 +86,10 @@ bool sm4ns3::Registration::doWhoAreYou()
 	std::vector<Json::Value> res;
 	res.push_back(JsonParser::makeWhoAmI(props["token"].asString()));
 	std::string whoami;
-	JsonParser::serialize(res, whoami);
+	sm4ns3::BundleHeader head;
+	JsonParser::serialize(res, head, whoami);
 
-	if (!broker->getConnection().send(whoami)) {
+	if (!broker->getConnection().send(head, whoami)) {
 		std::cout <<"ERROR: unable to send WHOAMI response.\n";
 		return false;
 	}
@@ -188,10 +190,11 @@ bool sm4ns3::WFD_Registration::doInitialization()
 	if(!Registration::doInitialization()) { return false;}
 
 	//Prepare a packet in json format about all agents group information.
-	const std::string msg = makeGO_ClientPacket();
+	sm4ns3::BundleHeader head;
+	const std::string msg = makeGO_ClientPacket(head);
 
 	//Send this information to simmobility
-	if (!broker->getConnection().send(msg)) {
+	if (!broker->getConnection().send(head, msg)) {
 		return false;
 	}
 
@@ -225,7 +228,7 @@ bool sm4ns3::WFD_Registration::doRoleAssignment()
 
 //since we dont want tho include WFD_Group headers to serialize.h(and we dont know why!!!!)
 //we define a method here only.
-std::string sm4ns3::WFD_Registration::makeGO_ClientPacket()
+std::string sm4ns3::WFD_Registration::makeGO_ClientPacket(sm4ns3::BundleHeader& head)
 {
 	//First make the single message.
 	Json::Value res;
@@ -246,7 +249,7 @@ std::string sm4ns3::WFD_Registration::makeGO_ClientPacket()
 	std::string msg;
 	std::vector<Json::Value> vect;
 	vect.push_back(res);
-	sm4ns3::JsonParser::serialize(vect, msg);
+	sm4ns3::JsonParser::serialize(vect, head, msg);
 	return msg;
 }
 

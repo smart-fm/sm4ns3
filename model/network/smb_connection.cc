@@ -67,9 +67,9 @@ void sm4ns3::Connection::readHandler(const boost::system::error_code& e)
 	async_receive();
 }
 
-bool sm4ns3::Connection::send(std::string str) 
+bool sm4ns3::Connection::send(const BundleHeader& header, std::string str) 
 {
-	return m_session->write(str);
+	return m_session->write(header, str);
 }
 
 

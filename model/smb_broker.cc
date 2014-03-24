@@ -149,13 +149,15 @@ void sm4ns3::Broker::pause()
 
 			sendOutgoing();
 			NS_LOG_DEBUG( "Broker::sendOutgoing() done" );
-	
+
+			//Now send the "ClientDone" message.
 			std::vector<Json::Value> res;
 			res.push_back(JsonParser::makeClientDone());
 			std::string resMsg;
-			JsonParser::serialize(res, resMsg);
+			sm4ns3::BundleHeader resHeader;
+			JsonParser::serialize(res, resHeader, resMsg);
 
-			conn.send(resMsg);	//due to nature of DES, this must be sync rather than async
+			conn.send(resHeader, resMsg);	//due to nature of DES, this must be sync rather than async
 			NS_LOG_DEBUG("Broker::send to simmobility done" );
 
 			Simulator::Schedule(MilliSeconds(100), &Broker::pause, this);
@@ -201,22 +203,12 @@ void sm4ns3::Broker::sendOutgoing() {
 
 	//Now send.
 	std::string msg;
-	if (!JsonParser::serialize(messages, msg))  {
+	sm4ns3::BundleHeader head;
+	if (!JsonParser::serialize(messages, head, msg))  {
 		std::cout <<"Broker couldn't serialize messages.\n";
 		return;
 	}
-	conn.send(msg);
-
-/*	Json::Value root ;
-	int i = 0;
-	Json::Value msg;
-	while (m_outgoing.pop(msg)) {
-		root["DATA"].append(msg);
-		i++;
-	}
-	Json::Value header = JsonParser::createPacketHeader(i);
-	root["PACKET_HEADER"] = header;
-	conn.send(Json::FastWriter().write(root));*/
+	conn.send(head, msg);
 }
 
 //parses the packet to extract messages,

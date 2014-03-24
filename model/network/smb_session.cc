@@ -30,10 +30,10 @@ void sm4ns3::Session::closeSocket()
 }
 
 
-bool sm4ns3::Session::write(std::string& t)
+bool sm4ns3::Session::write(const BundleHeader& header, std::string& t)
 {
 	// Format the header.
-	outbound_header_ = make_bundle_header_v0(t);
+	outbound_header_ = BundleParser::make_bundle_header(header);
 	if (outbound_header_.empty()) { return false; }
 
 	// Write the serialized data to the socket. We use "gather-write" to send
@@ -55,7 +55,7 @@ bool sm4ns3::Session::read(std::string& t)
 		return false;
 	}
 
-	unsigned int remLen = read_bundle_header_v0(std::string(inbound_header_, header_length));
+	unsigned int remLen = BundleParser::read_bundle_header(std::string(inbound_header_, header_length)).remLen;
 	if (remLen == 0) {
 		return false;
 	}
@@ -79,25 +79,6 @@ bool sm4ns3::Session::read(std::string& t)
 }
 
 
-std::string sm4ns3::Session::make_bundle_header_v0(const std::string& data) 
-{
-	std::ostringstream header_stream;
-	header_stream << std::setw(header_length) << std::hex << data.size();
-	if (!header_stream || header_stream.str().size() != header_length) {
-		return "";
-	}
-	return header_stream.str();
-}
 
-
-unsigned int sm4ns3::Session::read_bundle_header_v0(const std::string& header) 
-{
-	std::istringstream is(header);
-	unsigned int res = 0;
-	if (!(is >> std::hex >> res)) {
-		return 0;
-	}
-	return res;
-}
 
 
