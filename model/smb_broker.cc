@@ -3,7 +3,6 @@
 //   license.txt   (http://opensource.org/licenses/MIT)
 
 #include "smb_broker.h"
-#include "serialize.h"
 #include "registration.h"
 #include "handler_base.h"
 
@@ -31,6 +30,7 @@ sm4ns3::Broker::Broker(const string& simmob_host, const string& simmob_port) :
 {
 	m_pause = true;
 	global_pckt_cnt = 0;
+	JsonParser::serialize_begin(m_outgoing);
 }
 
 sm4ns3::Broker::~Broker() 
@@ -40,7 +40,7 @@ sm4ns3::Broker::~Broker()
 }
 
 
-void sm4ns3::Broker::onMessageReceived(const string& input) 
+void sm4ns3::Broker::onMessageReceived(const BundleHeader& header, const string& input) 
 {
 	//What to do with the message now?
 	//if you are in the initial stage of being authenticated or getting the
@@ -49,7 +49,7 @@ void sm4ns3::Broker::onMessageReceived(const string& input)
 	CriticalSection lock(mutex_pause);
 
 	//Extract and post message. The Broker's other thread is spinning on m_pause.
-	if(!parsePacket(input)) {
+	if(!parsePacket(header, input)) {
 		std::cout <<"Error: could not parse packet.\n";
 	}
 	m_pause = false;
@@ -120,9 +120,9 @@ void sm4ns3::Broker::run_io_service()
 }
 
 
-void sm4ns3::Broker::insertOutgoing(const Json::Value &value) 
+sm4ns3::OngoingSerialization& sm4ns3::Broker::getOutgoing()
 {
-	m_outgoing.push(value);
+	return m_outgoing;
 }
 
 void sm4ns3::Broker::pause() 
@@ -151,11 +151,13 @@ void sm4ns3::Broker::pause()
 			NS_LOG_DEBUG( "Broker::sendOutgoing() done" );
 
 			//Now send the "ClientDone" message.
-			std::vector<Json::Value> res;
-			res.push_back(JsonParser::makeClientDone());
+			//TODO: I am not sure why we don't do this with sendOutgoing.
+			sm4ns3::OngoingSerialization res;
+			JsonParser::serialize_begin(res);
+			sm4ns3::JsonParser::makeClientDone(res);
 			std::string resMsg;
 			sm4ns3::BundleHeader resHeader;
-			JsonParser::serialize(res, resHeader, resMsg);
+			JsonParser::serialize_end(res, resHeader, resMsg);
 
 			conn.send(resHeader, resMsg);	//due to nature of DES, this must be sync rather than async
 			NS_LOG_DEBUG("Broker::send to simmobility done" );
@@ -177,19 +179,28 @@ void sm4ns3::Broker::pause()
 
 void sm4ns3::Broker::processIncoming() 
 {
-	Json::Value msg;
-	while (m_incoming.pop(msg)) {
-		if (!msg.isMember("MESSAGE_TYPE")) {
-			std::cout <<"Invalid message, no message_type\n";
-			return;
-		}
+	MessageConglomerate conglom;
+	while (m_incoming.pop(conglom)) {
+		//Conglomerates contain whole swaths of messages themselves.
+		for (int i=0; i<conglom.getCount(); i++) {
+			if (NEW_BUNDLES) {
+				throw std::runtime_error("processIncoming() for NEW_BUNDLES not yet supported."); 
+			} else {
+				const Json::Value& jsMsg = conglom.getMessage(i);
 
-		//Get the handler, let it parse its own expected message type.
-		const sm4ns3::Handler* handler = handleLookup.getHandler(msg["MESSAGE_TYPE"].asString());
-		if (handler) {
-			handler->handle(msg, this);
-		} else {
-			std::cout <<"no handler for type \"" <<msg["MESSAGE_TYPE"].asString() << "\"\n";
+				if (!jsMsg.isMember("MESSAGE_TYPE")) {
+					std::cout <<"Invalid message, no message_type\n";
+					return;
+				}
+
+				//Get the handler, let it parse its own expected message type.
+				const sm4ns3::Handler* handler = handleLookup.getHandler(jsMsg["MESSAGE_TYPE"].asString());
+				if (handler) {
+					handler->handle(conglom, i, this);
+				} else {
+					std::cout <<"no handler for type \"" <<jsMsg["MESSAGE_TYPE"].asString() << "\"\n";
+				}
+			}
 		}
 	}
 }
@@ -197,25 +208,26 @@ void sm4ns3::Broker::processIncoming()
 
 void sm4ns3::Broker::sendOutgoing() {
 	//Some fiddling.
-	std::vector<Json::Value> messages;
-	Json::Value root;
-	while (m_outgoing.pop(root)) { messages.push_back(root); }
+//	std::vector<Json::Value> messages;
+//	Json::Value root;
+//	while (m_outgoing.pop(root)) { messages.push_back(root); }
 
 	//Now send.
 	std::string msg;
 	sm4ns3::BundleHeader head;
-	if (!JsonParser::serialize(messages, head, msg))  {
+	if (!JsonParser::serialize_end(m_outgoing, head, msg))  {
 		std::cout <<"Broker couldn't serialize messages.\n";
 		return;
 	}
 	conn.send(head, msg);
+	JsonParser::serialize_begin(m_outgoing);
 }
 
 //parses the packet to extract messages,
 //then redirects the parsed messages based on their
 //type and category for further processing
 //return value will tell you whether notify or not
-bool sm4ns3::Broker::parsePacket(const std::string &input)
+bool sm4ns3::Broker::parsePacket(const BundleHeader& header, const std::string &input)
 {
 	//End of stream reached?
 	if(input.empty()){
@@ -224,21 +236,28 @@ bool sm4ns3::Broker::parsePacket(const std::string &input)
 	}
 
 	//Let the serializer handle the heavy lifting.
-	std::vector<Json::Value> temp;
-	if (!JsonParser::deserialize(input, temp)) {
+	MessageConglomerate temp;
+	if (!JsonParser::deserialize(header, input, temp)) {
 		std::cout <<"Broker couldn't parse packet.\n";
 		return false;
 	}
 
 	//We have to introspect a little bit, in order to find our READY_TO_RECEIVE message.
 	bool res = false;
-	for (std::vector<Json::Value>::const_iterator it=temp.begin(); it!=temp.end(); it++) {
-		if (it->isMember("MESSAGE_TYPE") && (*it)["MESSAGE_TYPE"] == "READY_TO_RECEIVE") {
-			res = true;
+	for (int i=0; i<temp.getCount(); i++) {
+		if (NEW_BUNDLES) {
+			throw std::runtime_error("parseAgentsInfo() for NEW_BUNDLES not yet supported."); 
 		} else {
-			m_incoming.push(*it);
+			const Json::Value& jsMsg = temp.getMessage(i);
+			if (jsMsg.isMember("MESSAGE_TYPE") && jsMsg["MESSAGE_TYPE"] == "READY_TO_RECEIVE") {
+				res = true;
+				break;
+			}
 		}
 	}
+
+	//New messages to process
+	m_incoming.push(temp);
 
 	return res;
 }

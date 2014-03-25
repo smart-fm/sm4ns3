@@ -37,9 +37,9 @@ bool sm4ns3::Connection::connect()
 }
 
 
-bool sm4ns3::Connection::receive(std::string &input) 
+bool sm4ns3::Connection::receive(BundleHeader& header, std::string &input)
 {
-	return m_session->read(input);
+	return m_session->read(header, input);
 }
 
 void sm4ns3::Connection::async_receive() 
@@ -47,7 +47,7 @@ void sm4ns3::Connection::async_receive()
 	if(!isOpen()) { throw std::runtime_error("Connection is down, reading will Fail"); }
 
 	incomingMessage = "";
-	m_session->async_read(incomingMessage, boost::bind(&Connection::readHandler, this, boost::asio::placeholders::error));
+	m_session->async_read(incomingHeader, incomingMessage, boost::bind(&Connection::readHandler, this, boost::asio::placeholders::error));
 }
 
 void sm4ns3::Connection::readHandler(const boost::system::error_code& e) 
@@ -63,7 +63,7 @@ void sm4ns3::Connection::readHandler(const boost::system::error_code& e)
 		}
 	}
 
-	broker->onMessageReceived(incomingMessage);
+	broker->onMessageReceived(incomingHeader, incomingMessage);
 	async_receive();
 }
 

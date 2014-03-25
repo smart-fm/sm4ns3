@@ -197,10 +197,24 @@ void sm4ns3::Agent::ReceivePacket (ns3::Ptr<ns3::Socket> socket)
 				continue;
 			}
 
-			//change the sender and sender type information, then forward to the client Android app.
-			j_msg["SENDER"] = "0";
-			j_msg["SENDER_TYPE"] = "NS3_SIMULATOR";
-			broker->insertOutgoing(j_msg);
+			//Here, we de-serialize our multicast message. 
+			//NOTE: This is independent of our bundle format, since we use JSON to serialize this internal message.
+			//TODO: I am not entirely sure why this message format doesn't line up with a typical MulticastMessage. For now, we use the "UnknownJSON" message type.
+			Json::Value outgoing;
+			outgoing["MESSAGE_TYPE"] = j_msg["MESSAGE_TYPE"];
+			outgoing["MESSAGE_CAT"] = j_msg["MESSAGE_CAT"];
+			outgoing["SENDING_AGENT"] = j_msg["SENDING_AGENT"];
+			outgoing["MULTICAST_DATA"] = j_msg["MULTICAST_DATA"];
+			outgoing["RECEIVING_AGENT_ID"] = j_msg["RECEIVING_AGENT_ID"];
+			outgoing["GLOBAL_PACKET_COUNT"] = j_msg["GLOBAL_PACKET_COUNT"];
+			outgoing["TICK_SENT"] = j_msg["TICK_SENT"];
+
+			//These change.
+			outgoing["SENDER"] = "0";
+			outgoing["SENDER_TYPE"] = "NS3_SIMULATOR";
+
+			//Forward to Sim Mobility.
+			JsonParser::makeUnknownJSON(broker->getOutgoing(), outgoing);
 		}
 	}
 }

@@ -4,10 +4,9 @@
 
 #pragma once
 
-#include <jsoncpp/json/json.h>
-
 namespace sm4ns3 {
 
+class MessageConglomerate;
 class Broker;
 
 ///A base class for anything that can "handle" a message. Note that the message is passed in 
@@ -16,7 +15,7 @@ class Broker;
 class Handler {
 public:
 	virtual ~Handler() {}
-	virtual void handle(const Json::Value&, Broker*) const = 0;
+	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const = 0;
 };
 
 }

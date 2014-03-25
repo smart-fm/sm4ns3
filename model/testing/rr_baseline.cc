@@ -55,28 +55,37 @@ sm4ns3::RoadRunnerBaseLine::~RoadRunnerBaseLine()
 
 void sm4ns3::RoadRunnerBaseLine::sendOutgoing()
 {
-	m_outgoing.clear();
+	JsonParser::serialize_begin(m_outgoing);
 }
 
+//NOTE: The "add_agent" list is maintained, but it seems that this list is NOT used to generate "AddAgent" messages (these are instead done at initialization time, in parseLine()).
 void sm4ns3::RoadRunnerBaseLine::pushToQueue()
 {
-	//NOTE: The "add_agent" list is maintained, but it seems that this list is NOT used to generate "AddAgent" messages (these are instead done at initialization time, in parseLine()).
+	//Typical serialization
+	OngoingSerialization ongoing;
+	JsonParser::serialize_begin(ongoing);
 
 	//Create a fake ALL_LOCATIONS_DATA message with agent location updates.
 	if (!currTick->second.update_agent.empty()) {
-		Json::Value msg = JsonParser::makeAllLocations(currTick->second.update_agent);
-
-		//Push it to the broker's queue
-		m_incoming.push(msg);
+		JsonParser::makeAllLocations(ongoing, currTick->second.update_agent);
 	}
 
 	//Create fake Multicast messages.
 	for (std::vector<TickMulticast>::const_iterator mcIt=currTick->second.multicast.begin(); mcIt!=currTick->second.multicast.end(); mcIt++) {
-		Json::Value msg = JsonParser::makeMulticast(mcIt->sendAgId, mcIt->receiveAgId, mcIt->mcData);
-
-		//Push it to the broker's queue
-		m_incoming.push(msg);
+		JsonParser::makeMulticast(ongoing, mcIt->sendAgId, mcIt->receiveAgId, mcIt->mcData);
 	}
+
+	//Done, serialize.
+	BundleHeader mHead;
+	std::string mStr;
+	JsonParser::serialize_end(ongoing, mHead, mStr);
+
+	//Now, immediately de-serialize.
+	MessageConglomerate messages;
+	JsonParser::deserialize(mHead, mStr, messages);
+
+	//Push all messages to the Broker's queue.
+	m_incoming.push(messages);
 }
 
 

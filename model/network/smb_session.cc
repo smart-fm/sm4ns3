@@ -46,7 +46,7 @@ bool sm4ns3::Session::write(const BundleHeader& header, std::string& t)
 }
 
 
-bool sm4ns3::Session::read(std::string& t)
+bool sm4ns3::Session::read(BundleHeader& h, std::string& t)
 {
 	boost::system::error_code ec;
 	boost::asio::read(socket_, boost::asio::buffer(inbound_header_,header_length), ec);
@@ -55,21 +55,21 @@ bool sm4ns3::Session::read(std::string& t)
 		return false;
 	}
 
-	unsigned int remLen = BundleParser::read_bundle_header(std::string(inbound_header_, header_length)).remLen;
-	if (remLen == 0) {
+	h = BundleParser::read_bundle_header(std::string(inbound_header_, header_length));
+	if (h.remLen == 0) {
 		return false;
 	}
 
 	// Start an asynchronous call to receive the data.
-	inbound_data_.resize(remLen);
-	boost::asio::read(socket_, boost::asio::buffer(inbound_data_,remLen), ec);
+	inbound_data_.resize(h.remLen);
+	boost::asio::read(socket_, boost::asio::buffer(inbound_data_,h.remLen), ec);
 	if(ec) {
 		std::cout <<"synchronous Read error-1 [" << ec.message() << "]\n";
 		return false;
 	}
 
 	try {
-		std::string archive_data(&inbound_data_[0], remLen);
+		std::string archive_data(&inbound_data_[0], h.remLen);
 		t = archive_data;
 	} catch (std::exception& e) {
 		std::cout <<"synchronous Read error-2 [" << e.what() << "]";

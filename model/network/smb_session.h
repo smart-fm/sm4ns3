@@ -50,16 +50,17 @@ public:
 	bool write(const BundleHeader& header, std::string& t);
 
 	/// synchronously read a data structure from the socket.
-	bool read(std::string& t);
+	bool read(BundleHeader& h, std::string& t);
 
 	///Asynchronously write a data structure to the socket.
 	///TODO: Currently unused.
 	/*template <typename Handler>
 	void async_write(const BundleHeader& header, std::string & t, Handler handler);*/
 
-	/// Asynchronously read a data structure from the socket.
+	///Asynchronously read a data structure from the socket.
+	///Reads into h and t, then calls handler()
 	template <typename Handler>
-	void async_read(std::string& t, Handler handler);
+	void async_read(BundleHeader& h, std::string& t, Handler handler);
 
 
 private:
@@ -67,7 +68,7 @@ private:
 	/// a tuple since boost::bind seems to have trouble binding a function object
 	/// created using boost::bind as a parameter.
 	template <typename Handler>
-	void handle_read_header(const boost::system::error_code& e, std::string& t, boost::tuple<Handler> handler);
+	void handle_read_header(const boost::system::error_code& e, BundleHeader& h, std::string& t, boost::tuple<Handler> handler);
 
 	/// Handle a completed read of message data.
 	template <typename Handler>
@@ -124,25 +125,25 @@ void sm4ns3::Session::async_write(const BundleHeader& header, std::string & t, H
 
 
 template <typename Handler>
-void sm4ns3::Session::async_read(std::string& t, Handler handler) 
+void sm4ns3::Session::async_read(BundleHeader& h, std::string& t, Handler handler) 
 {
 	// Issue a read operation to read exactly the number of bytes in a header.
-	void (Session::*f)(const boost::system::error_code&,std::string&, boost::tuple<Handler>)
+	void (Session::*f)(const boost::system::error_code&, BundleHeader&, std::string&, boost::tuple<Handler>)
 		= &Session::handle_read_header<Handler>;
 	boost::asio::async_read(socket_, boost::asio::buffer(inbound_header_),
-		boost::bind(f, shared_from_this(), boost::asio::placeholders::error, boost::ref(t), boost::make_tuple(handler)));
+		boost::bind(f, shared_from_this(), boost::asio::placeholders::error, boost::ref(h), boost::ref(t), boost::make_tuple(handler)));
 }
 
 
 template <typename Handler>
-void sm4ns3::Session::handle_read_header(const boost::system::error_code& e, std::string& t, boost::tuple<Handler> handler)
+void sm4ns3::Session::handle_read_header(const boost::system::error_code& e, BundleHeader& h, std::string& t, boost::tuple<Handler> handler)
 {
 	if (e) {
 		boost::get<0>(handler)(e);
 	} else {
 		// Determine the length of the serialized data.
-		unsigned int remLen = BundleParser::read_bundle_header(std::string(inbound_header_, header_length)).remLen;
-		if (remLen == 0) {
+		h = BundleParser::read_bundle_header(std::string(inbound_header_, header_length));
+		if (h.remLen == 0) {
 			// Header doesn't seem to be valid. Inform the caller.
 			boost::system::error_code error(boost::asio::error::invalid_argument);
 			boost::get<0>(handler)(error);
@@ -150,7 +151,7 @@ void sm4ns3::Session::handle_read_header(const boost::system::error_code& e, std
 		}
 
 		// Start an asynchronous call to receive the data.
-		inbound_data_.resize(remLen);
+		inbound_data_.resize(h.remLen);
 		void (Session::*f)(const boost::system::error_code&, std::string&, boost::tuple<Handler>)
 			= &Session::handle_read_data<Handler>;
 		boost::asio::async_read(socket_, boost::asio::buffer(inbound_data_),

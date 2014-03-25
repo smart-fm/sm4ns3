@@ -20,6 +20,7 @@ sm4ns3::HandlerLookup::HandlerLookup()
 	HandlerMap["ALL_LOCATIONS_DATA"] = new sm4ns3::AllLocationHandler();
 	HandlerMap["AGENTS_INFO"] = new sm4ns3::AgentsInfoHandler();
 	HandlerMap["TIME_DATA"] = new sm4ns3::NullHandler();
+	HandlerMap["READY_TO_RECEIVE"] = new sm4ns3::NullHandler();
 }
 
 sm4ns3::HandlerLookup::~HandlerLookup() 
@@ -43,10 +44,10 @@ const sm4ns3::Handler* sm4ns3::HandlerLookup::getHandler(const std::string& msgT
 }
 
 
-void sm4ns3::AgentsInfoHandler::handle(const Json::Value& msg, Broker* broker) const
+void sm4ns3::AgentsInfoHandler::handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const
 {
 	//Ask the serializer for an AgentsInfo message.
-	AgentsInfoMessage aInfo = JsonParser::parseAgentsInfo(msg);
+	AgentsInfoMessage aInfo = JsonParser::parseAgentsInfo(messages, msgNumber);
 
 	//Process add/remove agent requestss
 	for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
@@ -60,10 +61,10 @@ void sm4ns3::AgentsInfoHandler::handle(const Json::Value& msg, Broker* broker) c
 }
 
 
-void sm4ns3::AllLocationHandler::handle(const Json::Value& msg, Broker* broker) const
+void sm4ns3::AllLocationHandler::handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const
 {
 	//Ask the serializer for an AllLocations message.
-	AllLocationsMessage aInfo = JsonParser::parseAllLocations(msg);
+	AllLocationsMessage aInfo = JsonParser::parseAllLocations(messages, msgNumber);
 
 	//Now react accordingly.
 	std::map<unsigned int, ns3::Ptr<Agent> >& all_agents = Agent::getAgents();
@@ -86,10 +87,10 @@ void sm4ns3::AllLocationHandler::handle(const Json::Value& msg, Broker* broker) 
 
 
 
-void sm4ns3::UnicastHandler::handle(const Json::Value& msg, Broker* broker) const
+void sm4ns3::UnicastHandler::handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const
 {
 	//Ask the serializer for a Unicast message.
-	UnicastMessage ucMsg = JsonParser::parseUnicast(msg);
+	UnicastMessage ucMsg = JsonParser::parseUnicast(messages, msgNumber);
 
 	//Prepare a message.
 	std::string android_sender_id = ucMsg.sender_id;
@@ -102,13 +103,13 @@ void sm4ns3::UnicastHandler::handle(const Json::Value& msg, Broker* broker) cons
 }
 
 
-void sm4ns3::MulticastHandler::handle(const Json::Value& msg, Broker* broker) const
+void sm4ns3::MulticastHandler::handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const
 {
 	//Ask the serializer for a Multicast message.
-	MulticastMessage mcMsg = JsonParser::parseMulticast(msg);
+	MulticastMessage mcMsg = JsonParser::parseMulticast(messages, msgNumber);
 
 	//Prepare and send a message to each client.
-	//TODO: Can we invoke the serializer on this somehow?
+	//TODO: This is a weird case of using JSON as an internal message format. I don't think we can really do much to clean this up.
 	Json::Value res;
 
 	//Basic message properties.

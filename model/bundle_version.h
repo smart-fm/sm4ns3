@@ -10,7 +10,9 @@
 namespace sm4ns3 {
 
 ///Whether to use the old bundle version or the new one. 
-///Eventually, only new bundles will be supported, at which point this variable will be deleted.
+///NOTE: There should ONLY be one bundle format (v1). This flag exists during the transitional phase from v0 to v1,
+///      but you should expect that it will be deleted soon after v1 is shown to be stable. At that point, we might
+///      have slightly different message formats, but the bundle format should NOT change. 
 const bool NEW_BUNDLES = false;
 
 ///The size of a fixed length header.

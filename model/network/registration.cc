@@ -62,36 +62,44 @@ bool sm4ns3::Registration::doConnect(unsigned int timeout)
 bool sm4ns3::Registration::doWhoAreYou()
 {
 	//A single "WHOAREYOU" message it expected
+	BundleHeader head;
 	std::string str;
-	if (!broker->getConnection().receive(str)) {
+	if (!broker->getConnection().receive(head, str)) {
 		std::cout <<"Error reading WHOAREYOU.\n";
 		return false;
 	}
 
 	//Parse it.
-	Json::Value props;
+	sm4ns3::MessageConglomerate conglom;
 	sm4ns3::MessageBase msg;
-	if (!JsonParser::deserialize_single(str, "WHOAREYOU", msg, props)) {
+	if (!JsonParser::deserialize_single(head, str, "WHOAREYOU", msg, conglom)) {
 		std::cout <<"Error deserializing WHOAREYOU message.\n";
 		return false;
 	}
 
-	//Make sure it has a token.
-	if (!props.isMember("token")) {
-		std::cout <<"ERROR: \"token\" not found\n";
-		return false;
-	}
+	if (NEW_BUNDLES) {
+		throw std::runtime_error("Registration for NEW_BUNDLES not yet supported."); 
+	} else {
+		const Json::Value& props = conglom.getMessage(0);
 
-	//Prepare a response.
-	std::vector<Json::Value> res;
-	res.push_back(JsonParser::makeWhoAmI(props["token"].asString()));
-	std::string whoami;
-	sm4ns3::BundleHeader head;
-	JsonParser::serialize(res, head, whoami);
+		//Make sure it has a token.
+		if (!props.isMember("token")) {
+			std::cout <<"ERROR: \"token\" not found\n";
+			return false;
+		}
 
-	if (!broker->getConnection().send(head, whoami)) {
-		std::cout <<"ERROR: unable to send WHOAMI response.\n";
-		return false;
+		//Prepare a response.
+		sm4ns3::OngoingSerialization res;
+		JsonParser::serialize_begin(res);
+		JsonParser::makeWhoAmI(res, props["token"].asString());
+		std::string whoami;
+		sm4ns3::BundleHeader head;
+		JsonParser::serialize_end(res, head, whoami);
+
+		if (!broker->getConnection().send(head, whoami)) {
+			std::cout <<"ERROR: unable to send WHOAMI response.\n";
+			return false;
+		}
 	}
 	return true;
 }
@@ -99,36 +107,41 @@ bool sm4ns3::Registration::doWhoAreYou()
 bool sm4ns3::Registration::doAGENTS_INFO()
 {
 	//A single "AGENTS_INFO" message it expected
+	BundleHeader head;
 	std::string str;
-	if (!broker->getConnection().receive(str)) {
+	if (!broker->getConnection().receive(head, str)) {
 		std::cout <<"Error reading AGENTS_INFO.\n";
 		return false;
 	}
 
 	//Parse it.
-	Json::Value props;
+	sm4ns3::MessageConglomerate conglom;
 	sm4ns3::MessageBase msg;
-	if (!JsonParser::deserialize_single(str, "AGENTS_INFO", msg, props)) {
+	if (!JsonParser::deserialize_single(head, str, "AGENTS_INFO", msg, conglom)) {
 		std::cout <<"Error deserializing AGENTS_INFO message.\n";
 		return false;
 	}
 
-	//Parse it using existing functionality.
-	AgentsInfoMessage aInfo = JsonParser::parseAgentsInfo(props);
-	if (aInfo.addAgentIds.empty()) {
-		std::cout <<"ADD Agents info not found (empty).\n";
-		return false;
-	}
+	if (NEW_BUNDLES) {
+		throw std::runtime_error("Registration for NEW_BUNDLES not yet supported."); 
+	} else {
+		//Parse it using existing functionality.
+		AgentsInfoMessage aInfo = JsonParser::parseAgentsInfo(conglom, 0);
+		if (aInfo.addAgentIds.empty()) {
+			std::cout <<"ADD Agents info not found (empty).\n";
+			return false;
+		}
 
-	//Handle each new Agent ID
-	for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
-		//TODO: Fix this further.
-		if (m_application=="Default") {
-			sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<Agent>(*it, broker));
-		} else if (m_application=="stk") {
-			sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<WFD_Agent>(*it, broker));
-		} else {
-			throw std::runtime_error("Invalid m_application.");
+		//Handle each new Agent ID
+		for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
+			//TODO: Fix this further.
+			if (m_application=="Default") {
+				sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<Agent>(*it, broker));
+			} else if (m_application=="stk") {
+				sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<WFD_Agent>(*it, broker));
+			} else {
+				throw std::runtime_error("Invalid m_application.");
+			}
 		}
 	}
 
@@ -147,15 +160,16 @@ bool sm4ns3::Registration::doInitialization()
 bool sm4ns3::Registration::doREADY() 
 {
 	//expect to read READY message
+	BundleHeader head;
 	std::string str;
-	if (!broker->getConnection().receive(str)) {
+	if (!broker->getConnection().receive(head, str)) {
 		return false;
 	}
 
 	//Parse it.
-	Json::Value props;
+	sm4ns3::MessageConglomerate conglom;
 	sm4ns3::MessageBase msg;
-	if (!JsonParser::deserialize_single(str, "READY", msg, props)) {
+	if (!JsonParser::deserialize_single(head, str, "READY", msg, conglom)) {
 		std::cout <<"Error deserializing READY message.\n";
 		return false;
 	}
@@ -190,8 +204,12 @@ bool sm4ns3::WFD_Registration::doInitialization()
 	if(!Registration::doInitialization()) { return false;}
 
 	//Prepare a packet in json format about all agents group information.
+	sm4ns3::OngoingSerialization res;
+	JsonParser::serialize_begin(res);
+	sm4ns3::JsonParser::makeGoClient(res, WFD_Groups_);
+	std::string msg;
 	sm4ns3::BundleHeader head;
-	const std::string msg = makeGO_ClientPacket(head);
+	JsonParser::serialize_end(res, head, msg);
 
 	//Send this information to simmobility
 	if (!broker->getConnection().send(head, msg)) {
@@ -223,46 +241,5 @@ bool sm4ns3::WFD_Registration::doRoleAssignment()
 
 	return true;
 }
-
-
-
-//since we dont want tho include WFD_Group headers to serialize.h(and we dont know why!!!!)
-//we define a method here only.
-std::string sm4ns3::WFD_Registration::makeGO_ClientPacket(sm4ns3::BundleHeader& head)
-{
-	//First make the single message.
-	Json::Value res;
-	sm4ns3::JsonParser::addDefaultMessageProps(res, "GOCLIENT");
-
-	//Custom properties.
-	res["ID"] = "0";
-	res["TYPE"] = "NS3_SIMULATOR";
-
-	//Multi-group formation.
-	for(std::map<unsigned int, WFD_Group>::const_iterator it=WFD_Groups_.begin(); it!=WFD_Groups_.end(); it++) {
-		Json::Value clientMsg;
-		WFD_Registration::makeGO_ClientArrayElement(it->second.GO, it->second.members, clientMsg);
-		res["GROUPS"].append(clientMsg);
-	}
-
-	//Done
-	std::string msg;
-	std::vector<Json::Value> vect;
-	vect.push_back(res);
-	sm4ns3::JsonParser::serialize(vect, head, msg);
-	return msg;
-}
-
-
-void sm4ns3::WFD_Registration::makeGO_ClientArrayElement(unsigned int go, std::vector<unsigned int> clients, Json::Value & output) 
-{
-	std::vector<unsigned int>::iterator it(clients.begin()),it_end(clients.end());
-	Json::Value & GoClientMsg = output;
-	GoClientMsg["GO"] = go;
-	for(; it != it_end; it++) {
-		GoClientMsg["CLIENTS"].append(*it);
-	}
-}
-
 
 

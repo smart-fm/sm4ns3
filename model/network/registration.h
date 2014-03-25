@@ -12,6 +12,14 @@ namespace sm4ns3 {
 class BrokerBase;
 class BundleHeader;
 
+struct WFD_Group{
+	int groupId;//might come handy
+	unsigned int GO;
+	std::vector<unsigned int> members;//clients and GO
+	WFD_Group(unsigned int groupId,unsigned int GO, std::vector<unsigned int> members) : groupId(groupId),GO(GO), members(members) {}
+	WFD_Group(){}
+};
+
 class Registration {
 public:
 	Registration(BrokerBase* broker, std::string app = "Default");
@@ -48,14 +56,6 @@ protected:
 	virtual bool doInitialization();
 
 private:
-	struct WFD_Group{
-		int groupId;//might come handy
-		unsigned int GO;
-		std::vector<unsigned int> members;//clients and GO
-		WFD_Group(unsigned int groupId,unsigned int GO, std::vector<unsigned int> members) : groupId(groupId),GO(GO), members(members) {}
-		WFD_Group(){}
-	};
-
 	///Keeps the record of wfd groups in simmobility
 	std::map<unsigned int, WFD_Group> WFD_Groups_; //<groupId, WFD_Group>
 
@@ -64,12 +64,6 @@ private:
 
 	///Performs a group owner negotiation
 	bool doRoleAssignment();
-
-	///Create a json string of GO/Client information based on local containers
-	std::string makeGO_ClientPacket(sm4ns3::BundleHeader& head);
-
-	///Serialize part of a GOCLIENT message.
-	static void makeGO_ClientArrayElement(unsigned int go, std::vector<unsigned int> clients, Json::Value & output);
 };
 
 }

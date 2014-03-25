@@ -11,9 +11,9 @@
 std::string sm4ns3::BundleParser::make_bundle_header(const BundleHeader& header) 
 {
 	if (NEW_BUNDLES) {
-		return make_bundle_header_v0(header);
-	} else {
 		return make_bundle_header_v1(header);
+	} else {
+		return make_bundle_header_v0(header);
 	}
 }
 
@@ -21,9 +21,9 @@ std::string sm4ns3::BundleParser::make_bundle_header(const BundleHeader& header)
 sm4ns3::BundleHeader sm4ns3::BundleParser::read_bundle_header(const std::string& header) 
 {
 	if (NEW_BUNDLES) {
-		return read_bundle_header_v0(header);
-	} else {
 		return read_bundle_header_v1(header);
+	} else {
+		return read_bundle_header_v0(header);
 	}
 }
 

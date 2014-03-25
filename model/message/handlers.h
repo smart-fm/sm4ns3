@@ -29,27 +29,27 @@ private:
 ///A handler that does nothing.
 class NullHandler : public Handler {
 	virtual ~NullHandler() {}
-	virtual void handle(const Json::Value&, Broker*) const {}
+	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const {}
 };
 
 class AllLocationHandler : public Handler {
 public:
-	virtual void handle(const Json::Value& msg, Broker* broker) const;
+	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const;
 };
 
 class AgentsInfoHandler : public Handler {
 public:
-	virtual void handle(const Json::Value& msg, Broker* broker) const;
+	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const;
 };
 
 class UnicastHandler : public Handler {
 public:
-	virtual void handle(const Json::Value& msg, Broker* broker) const;
+	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const;
 };
 
 class MulticastHandler : public Handler {
 public:
-	virtual void handle(const Json::Value& msg, Broker* broker) const;
+	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const;
 };
 
 

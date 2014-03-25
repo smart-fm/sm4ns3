@@ -25,7 +25,7 @@ public:
 	bool connect();
 
 	//	issues a read
-	bool receive(std::string&);
+	bool receive(BundleHeader& header, std::string& message);
 
 	//isues an async_read
 	void async_receive();
@@ -45,6 +45,9 @@ private:
 	BrokerBase* broker;
 	boost::asio::io_service &m_io_service;
 	boost::shared_ptr<Session> m_session;
+
+	//Incoming data.
+	BundleHeader incomingHeader;
 	std::string incomingMessage;
 
 	std::string simmob_host;
