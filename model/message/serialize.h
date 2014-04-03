@@ -117,10 +117,16 @@ public:
 	static AllLocationsMessage parseAllLocations(const MessageConglomerate& msg, int msgNumber);
 
 	//Deserialize a UNICAST message.
-	static UnicastMessage parseUnicast(const MessageConglomerate& msg, int msgNumber);
+//	static UnicastMessage parseUnicast(const MessageConglomerate& msg, int msgNumber);
 
 	//Deserialize a MULTICAST message.
-	static MulticastMessage parseMulticast(const MessageConglomerate& msg, int msgNumber);
+//	static MulticastMessage parseMulticast(const MessageConglomerate& msg, int msgNumber);
+
+	//Deserialize an OPAQUE_SEND message.
+	static OpaqueSendMessage parseOpaqueSend(const MessageConglomerate& msg, int msgNumber);
+
+	//Deserialize an OPAQUE_RECEIVE message.
+	static OpaqueReceiveMessage parseOpaqueReceive(const MessageConglomerate& msg, int msgNumber);
 
 	//Serialize a WHOAMI message.
 	static void makeWhoAmI(OngoingSerialization& ongoing, const std::string& token);
@@ -134,9 +140,11 @@ public:
 	//Serialize an ALL_LOCATIONS message (used in the trace runner).
 	static void makeAllLocations(OngoingSerialization& ongoing, const std::map<unsigned int, DPoint>& allLocations);
 
-	//Serialize a MULTICAST message (used in the trace runner).
-	//(The actual client simply mutates the incoming MULTICAST message, so this function is only used in trace.)
-	static void makeMulticast(OngoingSerialization& ongoing, unsigned int sendAgentId, const std::vector<unsigned int>& receiveAgentIds, const std::string& data);
+	//Serialize an OPAQUE_SEND message (used in the trace runner).
+	//(The actual client simply mutates the incoming OPAQUE_SEND message, so this function is only used in trace.)
+	static void makeOpaqueSend(OngoingSerialization& ongoing, unsigned int sendAgentId, const std::vector<unsigned int>& receiveAgentIds, const std::string& data);
+
+
 
 	//Serialize a GOCLIENT message.
 	static void makeGoClient(OngoingSerialization& ongoing, const std::map<unsigned int, WFD_Group>& wfdGroups);

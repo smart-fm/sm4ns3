@@ -72,7 +72,7 @@ void sm4ns3::RoadRunnerBaseLine::pushToQueue()
 
 	//Create fake Multicast messages.
 	for (std::vector<TickMulticast>::const_iterator mcIt=currTick->second.multicast.begin(); mcIt!=currTick->second.multicast.end(); mcIt++) {
-		JsonParser::makeMulticast(ongoing, mcIt->sendAgId, mcIt->receiveAgId, mcIt->mcData);
+		JsonParser::makeOpaqueSend(ongoing, mcIt->sendAgId, mcIt->receiveAgId, mcIt->mcData);
 	}
 
 	//Done, serialize.

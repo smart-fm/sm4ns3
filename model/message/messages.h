@@ -12,9 +12,21 @@
 
 namespace sm4ns3 {
 
-struct UnicastMessage : public sm4ns3::MessageBase {
-	std::string receiver; ///<Who to send this to.
-	UnicastMessage(const MessageBase& base) : MessageBase(base) {}
+//Sent from Sim Mobility -> ns3
+struct OpaqueSendMessage : public sm4ns3::MessageBase {
+	std::string fromId; ///<The Agent sending this message.
+	std::vector<std::string> toIds; ///<The Agent(s) we are sending this message to.
+	bool broadcast; ///<If true, Sim Mobility will overwrite "toIds" with the nearest Agents (using the Aura Manager).
+	std::string data; ///<The actual message data
+	OpaqueSendMessage(const MessageBase& base) : MessageBase(base) {}
+};
+
+//Routed through ns-3, and then sent from ns-3 to Sim Mobility.
+struct OpaqueReceiveMessage : public sm4ns3::MessageBase {
+	std::string fromId; ///<The Agent sending this message.
+	std::string toId; ///<The Agent we are sending this message to.
+	std::string data; ///<The actual message data
+	OpaqueReceiveMessage(const MessageBase& base) : MessageBase(base) {}
 };
 
 struct MulticastMessage : public sm4ns3::MessageBase {

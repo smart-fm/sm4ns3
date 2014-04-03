@@ -15,12 +15,13 @@
 sm4ns3::HandlerLookup::HandlerLookup() 
 {
 	//Register all known handlers.
-	HandlerMap["MULTICAST"] = new sm4ns3::MulticastHandler();
-	HandlerMap["UNICAST"] = new sm4ns3::UnicastHandler();
+	HandlerMap["MULTICAST"] = new sm4ns3::InvalidHandler();
+	HandlerMap["UNICAST"] = new sm4ns3::InvalidHandler();
 	HandlerMap["ALL_LOCATIONS_DATA"] = new sm4ns3::AllLocationHandler();
 	HandlerMap["AGENTS_INFO"] = new sm4ns3::AgentsInfoHandler();
 	HandlerMap["TIME_DATA"] = new sm4ns3::NullHandler();
 	HandlerMap["READY_TO_RECEIVE"] = new sm4ns3::NullHandler();
+	HandlerMap["OPAQUE_SEND"] = new sm4ns3::OpaqueSendHandler();
 }
 
 sm4ns3::HandlerLookup::~HandlerLookup() 
@@ -87,57 +88,44 @@ void sm4ns3::AllLocationHandler::handle(const MessageConglomerate& messages, int
 
 
 
-void sm4ns3::UnicastHandler::handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const
+void sm4ns3::OpaqueSendHandler::handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const
 {
-	//Ask the serializer for a Unicast message.
-	UnicastMessage ucMsg = JsonParser::parseUnicast(messages, msgNumber);
-
-	//Prepare a message.
-	std::string android_sender_id = ucMsg.sender_id;
-	std::string android_sender_type = ucMsg.sender_type;
-	std::string android_receiver_id = ucMsg.receiver;
-	std::string android_receiver_type = ucMsg.sender_type;
-
-	//send to destination
-	//TODO: was this ever implemented? ~Seth
-}
-
-
-void sm4ns3::MulticastHandler::handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const
-{
-	//Ask the serializer for a Multicast message.
-	MulticastMessage mcMsg = JsonParser::parseMulticast(messages, msgNumber);
+	//Ask the serializer for an OpaqueSendHandler message.
+	OpaqueSendMessage osMsg = JsonParser::parseOpaqueSend(messages, msgNumber);
 
 	//Prepare and send a message to each client.
-	//TODO: This is a weird case of using JSON as an internal message format. I don't think we can really do much to clean this up.
+	//TODO: This is a weird case of using JSON as an internal message format.
+	//      We should switch this to using an OpaqueReceive message (which can still be converted to JSON).
 	Json::Value res;
 
 	//Basic message properties.
-	res["SENDER"] = mcMsg.sender_id;
-	res["SENDER_TYPE"] = mcMsg.sender_type;
-	res["MESSAGE_TYPE"] = mcMsg.msg_type;
-	res["MESSAGE_CAT"] = mcMsg.msg_cat;
+	res["SENDER"] = osMsg.sender_id;
+	res["SENDER_TYPE"] = osMsg.sender_type;
+	res["MESSAGE_TYPE"] = "OPAQUE_RECEIVE";
+	res["MESSAGE_CAT"] = osMsg.msg_cat;
 
 	//Custom message properties.
-	res["SENDING_AGENT"] = mcMsg.sender_id;
-	res["MULTICAST_DATA"] = mcMsg.msgData;
+	res["FROM_ID"] = osMsg.fromId;
+	res["DATA"] = osMsg.data;
 
 	//Retrieve the sending agent.
-	ns3::Ptr<Agent> sending_agent = sm4ns3::Agent::getAgent(res["SENDING_AGENT"].asUInt());
+	ns3::Ptr<Agent> sending_agent = sm4ns3::Agent::getAgent(res["FROM_ID"].asUInt());
 	if (!sending_agent) {
 		std::cout <<"Sending agent is invalid.\n";
 		return;
 	}
 
 	//Now loop over recipients, setting remaining custom properites and sending the message.
-	for (std::vector<unsigned int>::const_iterator it=mcMsg.recipients.begin(); it!=mcMsg.recipients.end(); it++) {
-		//Not sure if all of these must be set for every recipient.
-		res["RECEIVING_AGENT_ID"] = *it;
-		res["GLOBAL_PACKET_COUNT"] = broker->global_pckt_cnt;
-		res["TICK_SENT"] = broker->m_global_tick;
+	for (std::vector<std::string>::const_iterator it=osMsg.toIds.begin(); it!=osMsg.toIds.end(); it++) {
+		//Set the "to_id" for this recipient.
+		res["TO_ID"] = *it;
+
+		//TODO: Do we really need these? ~Seth
+		//res["GLOBAL_PACKET_COUNT"] = broker->global_pckt_cnt;
+		//res["TICK_SENT"] = broker->m_global_tick;
 
 		//Retrieve the current recipient.
-		ns3::Ptr<Agent> receiving_agent = sm4ns3::Agent::getAgent(*it);
+		ns3::Ptr<Agent> receiving_agent = sm4ns3::Agent::getAgent(res["TO_ID"].asUInt());
 		if (!receiving_agent) {
 			std::cout <<"Receiving agent is invalid.\n";
 			continue;

@@ -349,7 +349,7 @@ sm4ns3::AllLocationsMessage sm4ns3::JsonParser::parseAllLocations(const MessageC
 }
 
 
-sm4ns3::UnicastMessage sm4ns3::JsonParser::parseUnicast(const MessageConglomerate& msg, int msgNumber)
+/*sm4ns3::UnicastMessage sm4ns3::JsonParser::parseUnicast(const MessageConglomerate& msg, int msgNumber)
 {
 	sm4ns3::UnicastMessage res(JsonParser::parseMessageBase(msg, msgNumber));
 
@@ -387,6 +387,59 @@ sm4ns3::MulticastMessage sm4ns3::JsonParser::parseMulticast(const MessageConglom
 		for (unsigned int i=0; i<recip.size(); i++) {
 			res.recipients.push_back(recip[i].asUInt());
 		}
+	}
+	return res;
+}*/
+
+
+sm4ns3::OpaqueSendMessage sm4ns3::JsonParser::parseOpaqueSend(const MessageConglomerate& msg, int msgNumber)
+{
+	sm4ns3::OpaqueSendMessage res(JsonParser::parseMessageBase(msg, msgNumber));
+
+	if (NEW_BUNDLES) {
+		throw std::runtime_error("parse() for NEW_BUNDLES not yet supported.");
+	} else {
+		const Json::Value& jsMsg = msg.getMessage(msgNumber);
+
+		if (!(jsMsg.isMember("FROM_ID") && jsMsg.isMember("TO_IDS") && jsMsg.isMember("BROADCAST") && jsMsg.isMember("DATA") && jsMsg["TO_IDS"].isArray())) {
+			throw std::runtime_error("Badly formatted OPAQUE_SEND message.");
+		}
+
+		//Fairly simple.
+		res.fromId = jsMsg["FROM_ID"].asString();
+		res.broadcast = jsMsg["BROADCAST"].asBool();
+		res.data = jsMsg["DATA"].asString();
+		const Json::Value& toIds = jsMsg["TO_IDS"];
+		for (unsigned int i=0; i<toIds.size(); i++) {
+			res.toIds.push_back(toIds[i].asString());
+		}
+
+		//Fail-safe
+		if (res.broadcast && !res.toIds.empty()) {
+			throw std::runtime_error("Cannot call opaque_send with both \"broadcast\" as true and a non-empty toIds list.");
+		}
+	}
+	return res;
+}
+
+
+sm4ns3::OpaqueReceiveMessage sm4ns3::JsonParser::parseOpaqueReceive(const MessageConglomerate& msg, int msgNumber)
+{
+	sm4ns3::OpaqueReceiveMessage res(JsonParser::parseMessageBase(msg, msgNumber));
+
+	if (NEW_BUNDLES) {
+		throw std::runtime_error("parse() for NEW_BUNDLES not yet supported.");
+	} else {
+		const Json::Value& jsMsg = msg.getMessage(msgNumber);
+
+		if (!(jsMsg.isMember("FROM_ID") && jsMsg.isMember("TO_ID") && jsMsg.isMember("DATA"))) {
+			throw std::runtime_error("Badly formatted OPAQUE_RECEIVE message.");
+		}
+
+		//Save and return.
+		res.fromId = jsMsg["FROM_ID"].asString();
+		res.toId = jsMsg["TO_ID"].asString();
+		res.data = jsMsg["DATA"].asString();
 	}
 	return res;
 }
@@ -506,22 +559,22 @@ void sm4ns3::JsonParser::makeAllLocations(OngoingSerialization& ongoing, const s
 }
 
 
-void sm4ns3::JsonParser::makeMulticast(OngoingSerialization& ongoing, unsigned int sendAgentId, const std::vector<unsigned int>& receiveAgentIds, const std::string& data)
+void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, unsigned int sendAgentId, const std::vector<unsigned int>& receiveAgentIds, const std::string& data)
 {
 	if (NEW_BUNDLES) {
 		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
 	} else {
 		Json::Value res;
-		addDefaultMessageProps(res, "MULTICAST");
+		addDefaultMessageProps(res, "OPAQUE_SEND");
 		res["SENDER_TYPE"] = "APP"; //...but override this one.
-		res["SENDER"] = "106"; //...for some reason, this is NOT set to sendAgentId
+		res["FROM_ID"] = "106"; //...for some reason, this is NOT set to sendAgentId
 	
 		//Add the DATA section
 		res["DATA"] = data;
 
 		//Add all "RECIPIENTS"
 		for (std::vector<unsigned int>::const_iterator it=receiveAgentIds.begin(); it!=receiveAgentIds.end(); it++) {
-			res["RECIPIENTS"].append(*it);
+			res["TO_IDS"].append(*it);
 		}
 
 		//Now append it.

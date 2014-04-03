@@ -5,6 +5,7 @@
 #pragma once
 
 #include <string>
+#include <stdexcept>
 #include <jsoncpp/json/json.h>
 
 #include "handler_base.h"
@@ -32,6 +33,14 @@ class NullHandler : public Handler {
 	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const {}
 };
 
+///A handler for a deprecated or un-allowed type.
+class InvalidHandler : public Handler {
+	virtual ~InvalidHandler() {}
+	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const {
+		throw std::runtime_error("Attempting to use an invalid message (probably MULTICAST or UNICAST, which were replaced with OPAQUE_SEND and OPAQUE_RECEIVE).");
+	}
+};
+
 class AllLocationHandler : public Handler {
 public:
 	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const;
@@ -42,15 +51,11 @@ public:
 	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const;
 };
 
-class UnicastHandler : public Handler {
+class OpaqueSendHandler : public Handler {
 public:
 	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const;
 };
 
-class MulticastHandler : public Handler {
-public:
-	virtual void handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const;
-};
 
 
 }
