@@ -464,7 +464,7 @@ void sm4ns3::JsonParser::makeWhoAmI(OngoingSerialization& ongoing, const std::st
 		addDefaultMessageProps(res, "WHOAMI");
 		res["ID"] = "0";
 		res["token"] = token;
-		res["TYPE"] = "NS3_SIMULATOR";
+		res["type"] = "ns-3";
 		res["REQUIRED_SERVICES"].append("SIMMOB_SRV_TIME");
 		res["REQUIRED_SERVICES"].append("SIMMOB_SRV_ALL_LOCATIONS");
 		res["REQUIRED_SERVICES"].append("SIMMOB_SRV_UNKNOWN");
