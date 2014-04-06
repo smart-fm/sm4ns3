@@ -63,7 +63,7 @@ void sm4ns3::RoadRunnerBaseLine::pushToQueue()
 {
 	//Typical serialization
 	OngoingSerialization ongoing;
-	JsonParser::serialize_begin(ongoing);
+	JsonParser::serialize_begin(ongoing, "0", "987654321"); //Spoof Sim Mobility's ID. TODO: Better random ID for us.
 
 	//Create a fake ALL_LOCATIONS_DATA message with agent location updates.
 	if (!currTick->second.update_agent.empty()) {

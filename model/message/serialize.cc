@@ -69,9 +69,27 @@ const std::string& sm4ns3::MessageConglomerate::getUnderlyingString() const
 }
 
 
+const std::string& sm4ns3::MessageConglomerate::getSenderId() const
+{
+	return senderId;
+}
+
+void sm4ns3::MessageConglomerate::setSenderId(const std::string& id)
+{
+	senderId = id;
+}
+
+
 void sm4ns3::JsonParser::serialize_begin(OngoingSerialization& ongoing)
 {
-	ongoing.vHead.destId = "0"; //SimMobility is always ID 0.
+	serialize_begin(ongoing, "987654321", "0"); //TODO: Better random ID.
+}
+
+void sm4ns3::JsonParser::serialize_begin(OngoingSerialization& ongoing, const std::string& sendId, const std::string& destId)
+{
+	ongoing.vHead.sendId = sendId;
+	ongoing.vHead.destId = destId;
+	ongoing.vHead.msgLengths.clear();
 }
 
 bool sm4ns3::JsonParser::serialize_end(const OngoingSerialization& ongoing, BundleHeader& hRes, std::string& res)
@@ -166,20 +184,21 @@ bool sm4ns3::JsonParser::deserialize_v0(const std::string& msgStr, MessageConglo
 		return false;
 	}
 
-	//We don't actually need any information from the packet header, but it must exist.
-	if (!root.isMember("PACKET_HEADER")) {
+	//Retrieve the sender ID from the packet header.
+	if (!root.isMember("header") && root["header"].isMember("send_client")) {
 		std::cout <<"Packet header not found in input: \"" << msgStr << "\"\n";
 		return false;
 	}
+	res.setSenderId(root["header"]["send_client"].asString());
 
-	//Retrieve the DATA section, which must be an array.
-	if (!root.isMember("DATA") && root["DATA"].isArray()) {
-		std::cout <<"A 'DATA' section with correct format was not found in input: \"" <<msgStr <<"\"\n";
+	//Retrieve the messages section, which must be an array.
+	if (!root.isMember("messages") && root["messages"].isArray()) {
+		std::cout <<"A 'messages' section with correct format was not found in input: \"" <<msgStr <<"\"\n";
 		return false;
 	}
 
 	//Now extract the messages one by one.
-	const Json::Value& data = root["DATA"];
+	const Json::Value& data = root["messages"];
 	for (unsigned int i=0; i<data.size(); i++) {
 		res.addMessage(data[i]);
 	}
@@ -205,6 +224,7 @@ bool sm4ns3::JsonParser::deserialize_v1(const BundleHeader& header, const std::s
 		idStr <<msgStr[i++];
 	}
 	vHead.sendId = idStr.str();
+	res.setSenderId(vHead.sendId);
 	idStr.str("");
 	for (int sz=0; sz<header.destIdLen; sz++) {
 		idStr <<msgStr[i++];
@@ -238,7 +258,7 @@ bool sm4ns3::JsonParser::deserialize_single(const BundleHeader& header, const st
 	if (NEW_BUNDLES) {
 		throw std::runtime_error("deserialize_single for NEW_BUNDLES not yet supported."); 
 	} else {
-		if (!(remConglom.getMessage(0).isMember("MESSAGE_TYPE") && remConglom.getMessage(0)["MESSAGE_TYPE"] == expectedType)) {
+		if (!(remConglom.getMessage(0).isMember("msg_type") && remConglom.getMessage(0)["msg_type"] == expectedType)) {
 			std::cout <<"Error: unexpected message type (or none).\n";
 			return false;
 		}
@@ -273,20 +293,17 @@ sm4ns3::MessageBase sm4ns3::JsonParser::parseMessageBase(const MessageConglomera
 		const Json::Value& jsMsg = msg.getMessage(msgNumber);
 
 		//Common properties.
-		if (!(jsMsg.isMember("SENDER") && jsMsg.isMember("SENDER_TYPE") && jsMsg.isMember("MESSAGE_TYPE") && jsMsg.isMember("MESSAGE_CAT"))) {
+		if (!jsMsg.isMember("msg_type")) {
 			throw std::runtime_error("Base message is missing some required parameters."); 
 		}
 
-		res.sender_id = jsMsg["SENDER"].asString();
-		res.sender_type = jsMsg["SENDER_TYPE"].asString();
-		res.msg_type = jsMsg["MESSAGE_TYPE"].asString();
-		res.msg_cat = jsMsg["MESSAGE_CAT"].asString();
+		res.msg_type = jsMsg["msg_type"].asString();
 	}
 	return res;
 }
 
 
-sm4ns3::AgentsInfoMessage sm4ns3::JsonParser::parseAgentsInfo(const MessageConglomerate& msg, int msgNumber)
+sm4ns3::AgentsInfoMessage sm4ns3::JsonParser::parseNewAgents(const MessageConglomerate& msg, int msgNumber)
 {
 	sm4ns3::AgentsInfoMessage res(JsonParser::parseMessageBase(msg, msgNumber));
 
@@ -296,20 +313,20 @@ sm4ns3::AgentsInfoMessage sm4ns3::JsonParser::parseAgentsInfo(const MessageCongl
 		const Json::Value& jsMsg = msg.getMessage(msgNumber);
 
 		//Add?
-		if (jsMsg.isMember("ADD")) {
-			if (!jsMsg["ADD"].isArray()) { throw std::runtime_error("AgentsInfo ADD should be an array."); }
-			const Json::Value& agents = jsMsg["ADD"];
+		if (jsMsg.isMember("add")) {
+			if (!jsMsg["add"].isArray()) { throw std::runtime_error("AgentsInfo add should be an array."); }
+			const Json::Value& agents = jsMsg["add"];
 			for (unsigned int i=0; i<agents.size(); i++) {
-				res.addAgentIds.push_back(agents[i]["AGENT_ID"].asUInt());
+				res.addAgentIds.push_back(agents[i].asUInt());
 			}
 		}
 
 		//Remove?
-		if (jsMsg.isMember("REMOVE")) {
-			if (!jsMsg["REMOVE"].isArray()) { throw std::runtime_error("AgentsInfo REMOVE should be an array."); }
-			const Json::Value& agents = jsMsg["REMOVE"];
+		if (jsMsg.isMember("rem")) {
+			if (!jsMsg["rem"].isArray()) { throw std::runtime_error("AgentsInfo rem should be an array."); }
+			const Json::Value& agents = jsMsg["rem"];
 			for (unsigned int i=0; i<agents.size(); i++) {
-				res.remAgentIds.push_back(agents[i]["AGENT_ID"].asUInt());
+				res.remAgentIds.push_back(agents[i].asUInt());
 			}
 		}
 	}
@@ -328,18 +345,18 @@ sm4ns3::AllLocationsMessage sm4ns3::JsonParser::parseAllLocations(const MessageC
 	} else {
 		const Json::Value& jsMsg = msg.getMessage(msgNumber);
 
-		if (!jsMsg.isMember("LOCATIONS")) { throw std::runtime_error("Badly formatted AllLocations message [1]."); }
+		if (!(jsMsg.isMember("locations") && jsMsg["locations"].isArray())) { throw std::runtime_error("Badly formatted AllLocations message [1]."); }
 
 		//Parse each location into our map.
-		const Json::Value& locs = jsMsg["LOCATIONS"];
+		const Json::Value& locs = jsMsg["locations"];
 		for(unsigned int i=0; i<locs.size(); i++) {
 			const Json::Value& agInf = locs[i];
-			if (!(agInf.isMember("ID") && agInf.isMember("x") && agInf.isMember("y"))) { 
+			if (!(agInf.isMember("id") && agInf.isMember("x") && agInf.isMember("y"))) { 
 				throw std::runtime_error("Badly formatted AllLocations message [2]."); 
 			}
 
 			//Retrieve per-agent data, add it.
-			unsigned int agId = agInf["ID"].asUInt();
+			unsigned int agId = agInf["id"].asUInt();
 			double x = agInf["x"].asDouble();
 			double y = agInf["y"].asDouble();
 			res.agentLocations[agId] = DPoint(x,y);
@@ -347,49 +364,6 @@ sm4ns3::AllLocationsMessage sm4ns3::JsonParser::parseAllLocations(const MessageC
 	}
 	return res;
 }
-
-
-/*sm4ns3::UnicastMessage sm4ns3::JsonParser::parseUnicast(const MessageConglomerate& msg, int msgNumber)
-{
-	sm4ns3::UnicastMessage res(JsonParser::parseMessageBase(msg, msgNumber));
-
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("parse() for NEW_BUNDLES not yet supported."); 
-	} else {
-		const Json::Value& jsMsg = msg.getMessage(msgNumber);
-
-		if (!jsMsg.isMember("RECEIVER")) { throw std::runtime_error("Badly formatted Unicast message."); }
-
-		//Fairly simple.
-		res.receiver = jsMsg["RECEIVER"].asString();
-	}
-	return res;
-}
-
-
-sm4ns3::MulticastMessage sm4ns3::JsonParser::parseMulticast(const MessageConglomerate& msg, int msgNumber)
-{
-	sm4ns3::MulticastMessage res(JsonParser::parseMessageBase(msg, msgNumber));
-
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("parse() for NEW_BUNDLES not yet supported."); 
-	} else {
-		const Json::Value& jsMsg = msg.getMessage(msgNumber);
-
-		if (!(jsMsg.isMember("SENDING_AGENT") && jsMsg.isMember("RECIPIENTS") && jsMsg.isMember("DATA"))) { 
-			throw std::runtime_error("Badly formatted Multicast message."); 
-		}
-
-		//Save and return.
-		res.sendingAgent = jsMsg["SENDING_AGENT"].asUInt();
-		res.msgData = jsMsg["MULTICAST_DATA"].asString();
-		const Json::Value& recip = jsMsg["RECIPIENTS"];
-		for (unsigned int i=0; i<recip.size(); i++) {
-			res.recipients.push_back(recip[i].asUInt());
-		}
-	}
-	return res;
-}*/
 
 
 sm4ns3::OpaqueSendMessage sm4ns3::JsonParser::parseOpaqueSend(const MessageConglomerate& msg, int msgNumber)
@@ -401,15 +375,15 @@ sm4ns3::OpaqueSendMessage sm4ns3::JsonParser::parseOpaqueSend(const MessageCongl
 	} else {
 		const Json::Value& jsMsg = msg.getMessage(msgNumber);
 
-		if (!(jsMsg.isMember("FROM_ID") && jsMsg.isMember("TO_IDS") && jsMsg.isMember("BROADCAST") && jsMsg.isMember("DATA") && jsMsg["TO_IDS"].isArray())) {
+		if (!(jsMsg.isMember("from_id") && jsMsg.isMember("to_ids") && jsMsg.isMember("broadcast") && jsMsg.isMember("data") && jsMsg["to_ids"].isArray())) {
 			throw std::runtime_error("Badly formatted OPAQUE_SEND message.");
 		}
 
 		//Fairly simple.
-		res.fromId = jsMsg["FROM_ID"].asString();
-		res.broadcast = jsMsg["BROADCAST"].asBool();
-		res.data = jsMsg["DATA"].asString();
-		const Json::Value& toIds = jsMsg["TO_IDS"];
+		res.fromId = jsMsg["from_id"].asString();
+		res.broadcast = jsMsg["broadcast"].asBool();
+		res.data = jsMsg["data"].asString();
+		const Json::Value& toIds = jsMsg["to_ids"];
 		for (unsigned int i=0; i<toIds.size(); i++) {
 			res.toIds.push_back(toIds[i].asString());
 		}
@@ -423,51 +397,17 @@ sm4ns3::OpaqueSendMessage sm4ns3::JsonParser::parseOpaqueSend(const MessageCongl
 }
 
 
-sm4ns3::OpaqueReceiveMessage sm4ns3::JsonParser::parseOpaqueReceive(const MessageConglomerate& msg, int msgNumber)
-{
-	sm4ns3::OpaqueReceiveMessage res(JsonParser::parseMessageBase(msg, msgNumber));
-
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("parse() for NEW_BUNDLES not yet supported.");
-	} else {
-		const Json::Value& jsMsg = msg.getMessage(msgNumber);
-
-		if (!(jsMsg.isMember("FROM_ID") && jsMsg.isMember("TO_ID") && jsMsg.isMember("DATA"))) {
-			throw std::runtime_error("Badly formatted OPAQUE_RECEIVE message.");
-		}
-
-		//Save and return.
-		res.fromId = jsMsg["FROM_ID"].asString();
-		res.toId = jsMsg["TO_ID"].asString();
-		res.data = jsMsg["DATA"].asString();
-	}
-	return res;
-}
-
-
-
-void sm4ns3::JsonParser::addDefaultMessageProps(Json::Value& msg, const std::string& msgType)
-{
-	msg["SENDER"] = "0";
-	msg["SENDER_TYPE"] = "NS3_SIMULATOR";
-	msg["MESSAGE_TYPE"] = msgType;
-	msg["MESSAGE_CAT"] = "SYS";
-}
-
-
-void sm4ns3::JsonParser::makeWhoAmI(OngoingSerialization& ongoing, const std::string& token) 
+void sm4ns3::JsonParser::makeIdResponse(OngoingSerialization& ongoing, const std::string& token) 
 {
 	if (NEW_BUNDLES) {
 		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
 	} else {
 		Json::Value res;
-		addDefaultMessageProps(res, "WHOAMI");
-		res["ID"] = "0";
+		res["msg_type"] = "id_response";
+		res["id"] = "987654321";  //TODO: Better unique ID.
 		res["token"] = token;
 		res["type"] = "ns-3";
-		res["REQUIRED_SERVICES"].append("SIMMOB_SRV_TIME");
-		res["REQUIRED_SERVICES"].append("SIMMOB_SRV_ALL_LOCATIONS");
-		res["REQUIRED_SERVICES"].append("SIMMOB_SRV_UNKNOWN");
+		res["services"].append("srv_all_locations");
 
 		//Now append it.
 		std::string nextMsg = Json::FastWriter().write(res);
@@ -479,45 +419,13 @@ void sm4ns3::JsonParser::makeWhoAmI(OngoingSerialization& ongoing, const std::st
 	}
 }
 
-void sm4ns3::JsonParser::makeClientDone(OngoingSerialization& ongoing)
+void sm4ns3::JsonParser::makeTickedClient(OngoingSerialization& ongoing)
 {
 	if (NEW_BUNDLES) {
 		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
 	} else {
 		Json::Value res;
-		addDefaultMessageProps(res, "CLIENT_MESSAGES_DONE");
-
-		//Now append it.
-		std::string nextMsg = Json::FastWriter().write(res);
-		ongoing.messages <<nextMsg;
-
-		//Keep the header up-to-date.
-		ongoing.vHead.msgLengths.push_back(nextMsg.size());
-		ongoing.vHead.sendId = "0"; //TODO: This really shouldn't be 0; that's what Sim Mobility uses.
-	}
-}
-
-void sm4ns3::JsonParser::makeAgentsInfo(OngoingSerialization& ongoing, const std::vector<unsigned int>& addAgents, const std::vector<unsigned int>& remAgents)
-{
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
-	} else {
-		Json::Value res;
-		addDefaultMessageProps(res, "AGENTS_INFO");
-		res["SENDER_TYPE"] = "SIMMOBILITY"; //...but override this one.
-	
-		//Add all "ADD" agents.
-		Json::Value singleAgent;
-		for (std::vector<unsigned int>::const_iterator it=addAgents.begin(); it!=addAgents.end(); it++) {
-			singleAgent["AGENT_ID"] = *it;
-			res["ADD"].append(singleAgent);
-		}
-
-		//Add all "REMOVE" agents.
-		for (std::vector<unsigned int>::const_iterator it=remAgents.begin(); it!=remAgents.end(); it++) {
-			singleAgent["AGENT_ID"] = *it;
-			res["REMOVE"].append(singleAgent);
-		}	
+		res["msg_type"] = "ticked_client";
 
 		//Now append it.
 		std::string nextMsg = Json::FastWriter().write(res);
@@ -536,16 +444,15 @@ void sm4ns3::JsonParser::makeAllLocations(OngoingSerialization& ongoing, const s
 		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
 	} else {
 		Json::Value res;
-		addDefaultMessageProps(res, "ALL_LOCATIONS_DATA");
-		res["SENDER_TYPE"] = "SIMMOBILITY"; //...but override this one.
+		res["msg_type"] = "all_locations";
 
 		//Add all "LOCATIONS"
 		Json::Value singleAgent;
 		for (std::map<unsigned int, DPoint>::const_iterator it=allLocations.begin(); it!=allLocations.end(); it++) {
-			singleAgent["ID"] = it->first;
+			singleAgent["id"] = it->first;
 			singleAgent["x"] = it->second.x;
 			singleAgent["y"] = it->second.y;
-			res["LOCATIONS"].append(singleAgent);
+			res["locations"].append(singleAgent);
 		}
 
 		//Now append it.
@@ -565,17 +472,19 @@ void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, unsigned 
 		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
 	} else {
 		Json::Value res;
-		addDefaultMessageProps(res, "OPAQUE_SEND");
-		res["SENDER_TYPE"] = "APP"; //...but override this one.
-		res["FROM_ID"] = "106"; //...for some reason, this is NOT set to sendAgentId
+		res["msg_type"] = "opaque_send";
+		res["from_id"] = "987654321"; //TODO: Better unique ID.
 	
 		//Add the DATA section
-		res["DATA"] = data;
+		res["data"] = data;
 
 		//Add all "RECIPIENTS"
 		for (std::vector<unsigned int>::const_iterator it=receiveAgentIds.begin(); it!=receiveAgentIds.end(); it++) {
-			res["TO_IDS"].append(*it);
+			res["to_ids"].append(*it);
 		}
+
+		//Heuristic:
+		res["broadcast"] = receiveAgentIds.empty();
 
 		//Now append it.
 		std::string nextMsg = Json::FastWriter().write(res);
@@ -595,20 +504,16 @@ void sm4ns3::JsonParser::makeGoClient(OngoingSerialization& ongoing, const std::
 	} else {
 		//First make the single message.
 		Json::Value res;
-		addDefaultMessageProps(res, "GOCLIENT");
-
-		//Custom properties.
-		res["ID"] = "0";
-		res["TYPE"] = "NS3_SIMULATOR";
+		res["msg_type"] = "go_client";
 
 		//Multi-group formation.
 		for(std::map<unsigned int, WFD_Group>::const_iterator it=wfdGroups.begin(); it!=wfdGroups.end(); it++) {
 			Json::Value clientMsg;
-			clientMsg["GO"] = it->second.GO;
+			clientMsg["go"] = it->second.GO;
 			for(std::vector<unsigned int>::const_iterator it2=it->second.members.begin(); it2!=it->second.members.end(); it2++) {
-				clientMsg["CLIENTS"].append(*it2);
+				clientMsg["clients"].append(*it2);
 			}
-			res["GROUPS"].append(clientMsg);
+			res["groups"].append(clientMsg);
 		}
 
 		//Now append it.

@@ -43,7 +43,7 @@ public:
 	RoadRunnerBaseLine(const std::string& protocol, unsigned int nof_agents, const std::string& outputFile, bool disable_communication, bool disable_location_update);
 	~RoadRunnerBaseLine();
 
-	void sendOutgoing();
+	virtual void sendOutgoing();
 
 	void pushToQueue();
 	void reset();

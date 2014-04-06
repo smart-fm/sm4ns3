@@ -51,7 +51,16 @@ public:
 	///Retriee the underlying message string; v1
 	const std::string& getUnderlyingString() const;
 
+	///Set the sender's ID
+	void setSenderId(const std::string& id);
+
+	///Retrieve the sender's ID.
+	const std::string& getSenderId() const;
+
 private:
+	//We include a copy of the sender's ID (destination will always be 0, since MessageConglomerates are only used for received messages.
+	std::string senderId;
+
 	//v0 only requires this.
 	std::vector<Json::Value> messages_v0;
 
@@ -93,6 +102,9 @@ public:
 	///      We would need to add dummy characters for the message lengths, and then overwrite them later during serialize_end().
 	static void serialize_begin(OngoingSerialization& ongoing);
 
+	///Special case of serialize_begin where you need to mutate the send/dest IDs.
+	static void serialize_begin(OngoingSerialization& ongoing, const std::string& sendId, const std::string& destId);
+
 	///Finish serialization of a series of messages. See serialize_begin() for usage.
 	static bool serialize_end(const OngoingSerialization& ongoing, BundleHeader& hRes, std::string& res);
 
@@ -110,43 +122,29 @@ public:
 	//Deserialize common properties associated with all messages.
 	static MessageBase parseMessageBase(const MessageConglomerate& msg, int msgNumber);
 
-	//Deserialize an AGENTS_INFO message. 
-	static AgentsInfoMessage parseAgentsInfo(const MessageConglomerate& msg, int msgNumber);
+	//Deserialize a "new_agents" message. 
+	static AgentsInfoMessage parseNewAgents(const MessageConglomerate& msg, int msgNumber);
 
-	//Deserialize an ALL_LOCATIONS message.
+	//Deserialize an "all_locations" message.
 	static AllLocationsMessage parseAllLocations(const MessageConglomerate& msg, int msgNumber);
 
-	//Deserialize a UNICAST message.
-//	static UnicastMessage parseUnicast(const MessageConglomerate& msg, int msgNumber);
-
-	//Deserialize a MULTICAST message.
-//	static MulticastMessage parseMulticast(const MessageConglomerate& msg, int msgNumber);
-
-	//Deserialize an OPAQUE_SEND message.
+	//Deserialize an "opaque_send" message.
 	static OpaqueSendMessage parseOpaqueSend(const MessageConglomerate& msg, int msgNumber);
 
-	//Deserialize an OPAQUE_RECEIVE message.
-	static OpaqueReceiveMessage parseOpaqueReceive(const MessageConglomerate& msg, int msgNumber);
+	//Serialize an "id_response" message.
+	static void makeIdResponse(OngoingSerialization& ongoing, const std::string& token);
 
-	//Serialize a WHOAMI message.
-	static void makeWhoAmI(OngoingSerialization& ongoing, const std::string& token);
+	//Serialize a "ticked_client" message.
+	static void makeTickedClient(OngoingSerialization& ongoing);
 
-	//Serialize a CLIENT_MESSAGES_DONE message.
-	static void makeClientDone(OngoingSerialization& ongoing);
-
-	//Serialize an AGENTS_INFO message (used in the trace runner).
-	static void makeAgentsInfo(OngoingSerialization& ongoing, const std::vector<unsigned int>& addAgents, const std::vector<unsigned int>& remAgents);
-
-	//Serialize an ALL_LOCATIONS message (used in the trace runner).
+	//Serialize an "all_locations" message (used in the trace runner).
 	static void makeAllLocations(OngoingSerialization& ongoing, const std::map<unsigned int, DPoint>& allLocations);
 
-	//Serialize an OPAQUE_SEND message (used in the trace runner).
+	//Serialize an "opaque_send" message (used in the trace runner).
 	//(The actual client simply mutates the incoming OPAQUE_SEND message, so this function is only used in trace.)
 	static void makeOpaqueSend(OngoingSerialization& ongoing, unsigned int sendAgentId, const std::vector<unsigned int>& receiveAgentIds, const std::string& data);
 
-
-
-	//Serialize a GOCLIENT message.
+	//Serialize a "go_client" message.
 	static void makeGoClient(OngoingSerialization& ongoing, const std::map<unsigned int, WFD_Group>& wfdGroups);
 
 	//Serialize an unknown JSON-encoded message.
@@ -164,9 +162,6 @@ private:
 
 	///Helper: serialize v1
 	static bool serialize_end_v1(const OngoingSerialization& ongoing, BundleHeader& hRes, std::string& res);
-
-	//Add default MessageBase properties to an existing Json-encoded message.
-	static void addDefaultMessageProps(Json::Value& msg, const std::string& msgType);
 };
 
 }

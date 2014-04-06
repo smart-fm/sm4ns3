@@ -72,7 +72,7 @@ bool sm4ns3::Registration::doWhoAreYou()
 	//Parse it.
 	sm4ns3::MessageConglomerate conglom;
 	sm4ns3::MessageBase msg;
-	if (!JsonParser::deserialize_single(head, str, "WHOAREYOU", msg, conglom)) {
+	if (!JsonParser::deserialize_single(head, str, "id_request", msg, conglom)) {
 		std::cout <<"Error deserializing WHOAREYOU message.\n";
 		return false;
 	}
@@ -91,7 +91,7 @@ bool sm4ns3::Registration::doWhoAreYou()
 		//Prepare a response.
 		sm4ns3::OngoingSerialization res;
 		JsonParser::serialize_begin(res);
-		JsonParser::makeWhoAmI(res, props["token"].asString());
+		JsonParser::makeIdResponse(res, props["token"].asString());
 		std::string whoami;
 		sm4ns3::BundleHeader head;
 		JsonParser::serialize_end(res, head, whoami);
@@ -117,7 +117,7 @@ bool sm4ns3::Registration::doAGENTS_INFO()
 	//Parse it.
 	sm4ns3::MessageConglomerate conglom;
 	sm4ns3::MessageBase msg;
-	if (!JsonParser::deserialize_single(head, str, "AGENTS_INFO", msg, conglom)) {
+	if (!JsonParser::deserialize_single(head, str, "new_agents", msg, conglom)) {
 		std::cout <<"Error deserializing AGENTS_INFO message.\n";
 		return false;
 	}
@@ -126,7 +126,7 @@ bool sm4ns3::Registration::doAGENTS_INFO()
 		throw std::runtime_error("Registration for NEW_BUNDLES not yet supported."); 
 	} else {
 		//Parse it using existing functionality.
-		AgentsInfoMessage aInfo = JsonParser::parseAgentsInfo(conglom, 0);
+		AgentsInfoMessage aInfo = JsonParser::parseNewAgents(conglom, 0);
 		if (aInfo.addAgentIds.empty()) {
 			std::cout <<"ADD Agents info not found (empty).\n";
 			return false;
@@ -169,7 +169,7 @@ bool sm4ns3::Registration::doREADY()
 	//Parse it.
 	sm4ns3::MessageConglomerate conglom;
 	sm4ns3::MessageBase msg;
-	if (!JsonParser::deserialize_single(head, str, "READY", msg, conglom)) {
+	if (!JsonParser::deserialize_single(head, str, "id_ack", msg, conglom)) {
 		std::cout <<"Error deserializing READY message.\n";
 		return false;
 	}

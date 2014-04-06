@@ -154,7 +154,7 @@ void sm4ns3::Broker::pause()
 			//TODO: I am not sure why we don't do this with sendOutgoing.
 			sm4ns3::OngoingSerialization res;
 			JsonParser::serialize_begin(res);
-			sm4ns3::JsonParser::makeClientDone(res);
+			sm4ns3::JsonParser::makeTickedClient(res);
 			std::string resMsg;
 			sm4ns3::BundleHeader resHeader;
 			JsonParser::serialize_end(res, resHeader, resMsg);
@@ -188,17 +188,17 @@ void sm4ns3::Broker::processIncoming()
 			} else {
 				const Json::Value& jsMsg = conglom.getMessage(i);
 
-				if (!jsMsg.isMember("MESSAGE_TYPE")) {
+				if (!jsMsg.isMember("msg_type")) {
 					std::cout <<"Invalid message, no message_type\n";
 					return;
 				}
 
 				//Get the handler, let it parse its own expected message type.
-				const sm4ns3::Handler* handler = handleLookup.getHandler(jsMsg["MESSAGE_TYPE"].asString());
+				const sm4ns3::Handler* handler = handleLookup.getHandler(jsMsg["msg_type"].asString());
 				if (handler) {
 					handler->handle(conglom, i, this);
 				} else {
-					std::cout <<"no handler for type \"" <<jsMsg["MESSAGE_TYPE"].asString() << "\"\n";
+					std::cout <<"no handler for type \"" <<jsMsg["msg_type"].asString() << "\"\n";
 				}
 			}
 		}
@@ -249,7 +249,7 @@ bool sm4ns3::Broker::parsePacket(const BundleHeader& header, const std::string &
 			throw std::runtime_error("parseAgentsInfo() for NEW_BUNDLES not yet supported."); 
 		} else {
 			const Json::Value& jsMsg = temp.getMessage(i);
-			if (jsMsg.isMember("MESSAGE_TYPE") && jsMsg["MESSAGE_TYPE"] == "READY_TO_RECEIVE") {
+			if (jsMsg.isMember("msg_type") && jsMsg["msg_type"] == "ticked_simmob") {
 				res = true;
 				break;
 			}

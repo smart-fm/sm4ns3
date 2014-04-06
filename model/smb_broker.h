@@ -83,7 +83,7 @@ public:
 	bool processInitMessages();
 	void sendClientDone();
 	void processIncoming();
-	void sendOutgoing();
+	virtual void sendOutgoing();
 	bool parsePacket(const BundleHeader& header, const std::string &input);
 
 };

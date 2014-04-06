@@ -15,13 +15,14 @@
 sm4ns3::HandlerLookup::HandlerLookup() 
 {
 	//Register all known handlers.
+	HandlerMap["all_locations"] = new sm4ns3::AllLocationHandler();
+	HandlerMap["new_agents"] = new sm4ns3::AgentsInfoHandler();
+	HandlerMap["ticked_simmob"] = new sm4ns3::NullHandler();
+	HandlerMap["opaque_send"] = new sm4ns3::OpaqueSendHandler();
+
+	//Avoid obsolete messages.
 	HandlerMap["MULTICAST"] = new sm4ns3::InvalidHandler();
 	HandlerMap["UNICAST"] = new sm4ns3::InvalidHandler();
-	HandlerMap["ALL_LOCATIONS_DATA"] = new sm4ns3::AllLocationHandler();
-	HandlerMap["AGENTS_INFO"] = new sm4ns3::AgentsInfoHandler();
-	HandlerMap["TIME_DATA"] = new sm4ns3::NullHandler();
-	HandlerMap["READY_TO_RECEIVE"] = new sm4ns3::NullHandler();
-	HandlerMap["OPAQUE_SEND"] = new sm4ns3::OpaqueSendHandler();
 }
 
 sm4ns3::HandlerLookup::~HandlerLookup() 
@@ -48,7 +49,7 @@ const sm4ns3::Handler* sm4ns3::HandlerLookup::getHandler(const std::string& msgT
 void sm4ns3::AgentsInfoHandler::handle(const MessageConglomerate& messages, int msgNumber, Broker* broker) const
 {
 	//Ask the serializer for an AgentsInfo message.
-	AgentsInfoMessage aInfo = JsonParser::parseAgentsInfo(messages, msgNumber);
+	AgentsInfoMessage aInfo = JsonParser::parseNewAgents(messages, msgNumber);
 
 	//Process add/remove agent requestss
 	for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
@@ -99,17 +100,14 @@ void sm4ns3::OpaqueSendHandler::handle(const MessageConglomerate& messages, int 
 	Json::Value res;
 
 	//Basic message properties.
-	res["SENDER"] = osMsg.sender_id;
-	res["SENDER_TYPE"] = osMsg.sender_type;
-	res["MESSAGE_TYPE"] = "OPAQUE_RECEIVE";
-	res["MESSAGE_CAT"] = osMsg.msg_cat;
+	res["msg_type"] = "opaque_receive";
 
 	//Custom message properties.
-	res["FROM_ID"] = osMsg.fromId;
-	res["DATA"] = osMsg.data;
+	res["from_id"] = osMsg.fromId;
+	res["data"] = osMsg.data;
 
 	//Retrieve the sending agent.
-	ns3::Ptr<Agent> sending_agent = sm4ns3::Agent::getAgent(res["FROM_ID"].asUInt());
+	ns3::Ptr<Agent> sending_agent = sm4ns3::Agent::getAgent(res["from_id"].asUInt());
 	if (!sending_agent) {
 		std::cout <<"Sending agent is invalid.\n";
 		return;
@@ -118,14 +116,14 @@ void sm4ns3::OpaqueSendHandler::handle(const MessageConglomerate& messages, int 
 	//Now loop over recipients, setting remaining custom properites and sending the message.
 	for (std::vector<std::string>::const_iterator it=osMsg.toIds.begin(); it!=osMsg.toIds.end(); it++) {
 		//Set the "to_id" for this recipient.
-		res["TO_ID"] = *it;
+		res["to_id"] = *it;
 
 		//TODO: Do we really need these? ~Seth
 		//res["GLOBAL_PACKET_COUNT"] = broker->global_pckt_cnt;
 		//res["TICK_SENT"] = broker->m_global_tick;
 
 		//Retrieve the current recipient.
-		ns3::Ptr<Agent> receiving_agent = sm4ns3::Agent::getAgent(res["TO_ID"].asUInt());
+		ns3::Ptr<Agent> receiving_agent = sm4ns3::Agent::getAgent(res["to_id"].asUInt());
 		if (!receiving_agent) {
 			std::cout <<"Receiving agent is invalid.\n";
 			continue;
