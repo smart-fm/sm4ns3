@@ -92,6 +92,7 @@ bool sm4ns3::Registration::doWhoAreYou()
 		sm4ns3::OngoingSerialization res;
 		JsonParser::serialize_begin(res);
 		JsonParser::makeIdResponse(res, props["token"].asString());
+
 		std::string whoami;
 		sm4ns3::BundleHeader head;
 		JsonParser::serialize_end(res, head, whoami);

@@ -416,7 +416,6 @@ void sm4ns3::JsonParser::makeIdResponse(OngoingSerialization& ongoing, const std
 
 		//Keep the header up-to-date.
 		ongoing.vHead.msgLengths.push_back(nextMsg.size());
-		ongoing.vHead.sendId = "0"; //TODO: This really shouldn't be 0; that's what Sim Mobility uses.
 	}
 }
 
