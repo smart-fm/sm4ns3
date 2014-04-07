@@ -13,10 +13,10 @@ class BrokerBase;
 class BundleHeader;
 
 struct WFD_Group{
-	int groupId;//might come handy
-	unsigned int GO;
-	std::vector<unsigned int> members;//clients and GO
-	WFD_Group(unsigned int groupId,unsigned int GO, std::vector<unsigned int> members) : groupId(groupId),GO(GO), members(members) {}
+	std::string groupId;//might come handy
+	std::string GO;
+	std::vector<std::string> members;//clients and GO
+	WFD_Group(const std::string& groupId, const std::string& GO, std::vector<std::string> members) : groupId(groupId),GO(GO), members(members) {}
 	WFD_Group(){}
 };
 
@@ -57,10 +57,10 @@ protected:
 
 private:
 	///Keeps the record of wfd groups in simmobility
-	std::map<unsigned int, WFD_Group> WFD_Groups_; //<groupId, WFD_Group>
+	std::map<std::string, WFD_Group> WFD_Groups_; //<groupId, WFD_Group>
 
 	///Separate container that associates an agent to a wfd group
-	std::map<unsigned int, unsigned int> WFD_Membership; //<agent id, groupId>
+	std::map<std::string, std::string> WFD_Membership; //<agent id, groupId>
 
 	///Performs a group owner negotiation
 	bool doRoleAssignment();

@@ -9,6 +9,7 @@
 #include "ns3/net-device-container.h"
 #include "ns3/log.h"
 
+#include <string>
 #include <map>
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -33,8 +34,8 @@ class BrokerBase;
 
 class Agent : public ns3::Object {
 public:
-	Agent(int m_AgentId_, BrokerBase* broker); ///<Normal use
-	Agent(int m_AgentId_, ns3::Ptr<ns3::Node> node, BrokerBase* broker);  ///<Used by the trace program.
+	Agent(const std::string& m_AgentId_, BrokerBase* broker); ///<Normal use
+	Agent(const std::string& m_AgentId_, ns3::Ptr<ns3::Node> node, BrokerBase* broker);  ///<Used by the trace program.
 	Agent(); ///<Requirement for container storage.
 	virtual ~Agent();
 
@@ -54,18 +55,15 @@ public:
 	int Bind(uint16_t port = 80);
 	void ReceivePacket (ns3::Ptr<ns3::Socket> socket);
 
-	static std::map<unsigned int,ns3::Ptr<Agent> > &getAgents();
-	static ns3::Ptr<Agent>& getAgent(unsigned int);
+	static std::map<std::string,ns3::Ptr<Agent> > &getAgents();
+	static ns3::Ptr<Agent>& getAgent(const std::string& agId);
 
 	//	add agents
-	static void AddAgent(unsigned int , ns3::Ptr<Agent>);
-	static void RemoveAgent(unsigned int);
+	static void AddAgent(const std::string& agId, ns3::Ptr<Agent> agent);
+	static void RemoveAgent(const std::string& agId);
 
 	///returns the Agent Id.
-	int GetAgentId();
-
-	///Agent can have an Id. It is good that this Id be unique in the VANETs Highway.
-	void SetAgentId(int value);
+	std::string GetAgentId();
 
 	///\returns the position of Agent's Node which is loacted at the center back of the Agent.
 	ns3::Ptr<ns3::Node> GetNode();
@@ -95,13 +93,13 @@ public:
 
 public:
 	//All agents, sorted by agent ID
-	static std::map<unsigned int,ns3::Ptr<Agent> > AllAgents;
+	static std::map<std::string, ns3::Ptr<Agent> > AllAgents;
 
 protected:
 	//Interface to the Broker
 	sm4ns3::BrokerBase* broker;
 
-	int m_AgentId; // Agent's id
+	std::string m_AgentId; // Agent's id
 	ns3::Ptr<ns3::Node> m_node; // Agent has a node
 	ns3::Ptr<ns3::NetDevice> m_device; // Agent has a device
 
@@ -125,7 +123,7 @@ protected:
 
 class WFD_Agent :public Agent{
 public:
-	WFD_Agent(int m_AgentId_, BrokerBase* broker);
+	WFD_Agent(const std::string& m_AgentId_, BrokerBase* broker);
 	WFD_Agent();
 	virtual ~WFD_Agent();
 

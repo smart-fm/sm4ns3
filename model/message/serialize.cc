@@ -141,7 +141,8 @@ bool sm4ns3::JsonParser::serialize_end_v0(const OngoingSerialization& ongoing, B
 {
 	//Build the header.
 	Json::Value pktHeader;
-	pktHeader["NOF_MESSAGES"] = size_to_string(ongoing.vHead.msgLengths.size());
+	pktHeader["send_client"] = ongoing.vHead.sendId;
+	pktHeader["dest_client"] = ongoing.vHead.destId;
 
 	//Turn the current data string into a Json array. (Inefficient, but that doesn't matter for v0)
 	std::string data = "[" + ongoing.messages.str() + "]";
@@ -154,8 +155,8 @@ bool sm4ns3::JsonParser::serialize_end_v0(const OngoingSerialization& ongoing, B
 
 	//Combine.
 	Json::Value root;
-	root["PACKET_HEADER"] = pktHeader;
-	root["DATA"] = dataArr;
+	root["header"] = pktHeader;
+	root["messages"] = dataArr;
 	res = Json::FastWriter().write(root);
 
 	//Reflect changes to the bundle header.
@@ -317,7 +318,7 @@ sm4ns3::AgentsInfoMessage sm4ns3::JsonParser::parseNewAgents(const MessageConglo
 			if (!jsMsg["add"].isArray()) { throw std::runtime_error("AgentsInfo add should be an array."); }
 			const Json::Value& agents = jsMsg["add"];
 			for (unsigned int i=0; i<agents.size(); i++) {
-				res.addAgentIds.push_back(agents[i].asUInt());
+				res.addAgentIds.push_back(agents[i].asString());
 			}
 		}
 
@@ -326,7 +327,7 @@ sm4ns3::AgentsInfoMessage sm4ns3::JsonParser::parseNewAgents(const MessageConglo
 			if (!jsMsg["rem"].isArray()) { throw std::runtime_error("AgentsInfo rem should be an array."); }
 			const Json::Value& agents = jsMsg["rem"];
 			for (unsigned int i=0; i<agents.size(); i++) {
-				res.remAgentIds.push_back(agents[i].asUInt());
+				res.remAgentIds.push_back(agents[i].asString());
 			}
 		}
 	}
@@ -356,7 +357,7 @@ sm4ns3::AllLocationsMessage sm4ns3::JsonParser::parseAllLocations(const MessageC
 			}
 
 			//Retrieve per-agent data, add it.
-			unsigned int agId = agInf["id"].asUInt();
+			std::string agId = agInf["id"].asString();
 			double x = agInf["x"].asDouble();
 			double y = agInf["y"].asDouble();
 			res.agentLocations[agId] = DPoint(x,y);
@@ -438,7 +439,7 @@ void sm4ns3::JsonParser::makeTickedClient(OngoingSerialization& ongoing)
 }
 
 
-void sm4ns3::JsonParser::makeAllLocations(OngoingSerialization& ongoing, const std::map<unsigned int, DPoint>& allLocations)
+void sm4ns3::JsonParser::makeAllLocations(OngoingSerialization& ongoing, const std::map<std::string, DPoint>& allLocations)
 {
 	if (NEW_BUNDLES) {
 		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
@@ -448,7 +449,7 @@ void sm4ns3::JsonParser::makeAllLocations(OngoingSerialization& ongoing, const s
 
 		//Add all "LOCATIONS"
 		Json::Value singleAgent;
-		for (std::map<unsigned int, DPoint>::const_iterator it=allLocations.begin(); it!=allLocations.end(); it++) {
+		for (std::map<std::string, DPoint>::const_iterator it=allLocations.begin(); it!=allLocations.end(); it++) {
 			singleAgent["id"] = it->first;
 			singleAgent["x"] = it->second.x;
 			singleAgent["y"] = it->second.y;
@@ -466,7 +467,7 @@ void sm4ns3::JsonParser::makeAllLocations(OngoingSerialization& ongoing, const s
 }
 
 
-void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, unsigned int sendAgentId, const std::vector<unsigned int>& receiveAgentIds, const std::string& data)
+void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, const std::string& sendAgentId, const std::vector<std::string>& receiveAgentIds, const std::string& data)
 {
 	if (NEW_BUNDLES) {
 		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
@@ -479,7 +480,7 @@ void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, unsigned 
 		res["data"] = data;
 
 		//Add all "RECIPIENTS"
-		for (std::vector<unsigned int>::const_iterator it=receiveAgentIds.begin(); it!=receiveAgentIds.end(); it++) {
+		for (std::vector<std::string>::const_iterator it=receiveAgentIds.begin(); it!=receiveAgentIds.end(); it++) {
 			res["to_ids"].append(*it);
 		}
 
@@ -497,7 +498,7 @@ void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, unsigned 
 }
 
 
-void sm4ns3::JsonParser::makeGoClient(OngoingSerialization& ongoing, const std::map<unsigned int, WFD_Group>& wfdGroups)
+void sm4ns3::JsonParser::makeGoClient(OngoingSerialization& ongoing, const std::map<std::string, WFD_Group>& wfdGroups)
 {
 	if (NEW_BUNDLES) {
 		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
@@ -507,10 +508,10 @@ void sm4ns3::JsonParser::makeGoClient(OngoingSerialization& ongoing, const std::
 		res["msg_type"] = "go_client";
 
 		//Multi-group formation.
-		for(std::map<unsigned int, WFD_Group>::const_iterator it=wfdGroups.begin(); it!=wfdGroups.end(); it++) {
+		for(std::map<std::string, WFD_Group>::const_iterator it=wfdGroups.begin(); it!=wfdGroups.end(); it++) {
 			Json::Value clientMsg;
 			clientMsg["go"] = it->second.GO;
-			for(std::vector<unsigned int>::const_iterator it2=it->second.members.begin(); it2!=it->second.members.end(); it2++) {
+			for(std::vector<std::string>::const_iterator it2=it->second.members.begin(); it2!=it->second.members.end(); it2++) {
 				clientMsg["clients"].append(*it2);
 			}
 			res["groups"].append(clientMsg);

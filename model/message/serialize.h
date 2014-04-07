@@ -138,14 +138,14 @@ public:
 	static void makeTickedClient(OngoingSerialization& ongoing);
 
 	//Serialize an "all_locations" message (used in the trace runner).
-	static void makeAllLocations(OngoingSerialization& ongoing, const std::map<unsigned int, DPoint>& allLocations);
+	static void makeAllLocations(OngoingSerialization& ongoing, const std::map<std::string, DPoint>& allLocations);
 
 	//Serialize an "opaque_send" message (used in the trace runner).
 	//(The actual client simply mutates the incoming OPAQUE_SEND message, so this function is only used in trace.)
-	static void makeOpaqueSend(OngoingSerialization& ongoing, unsigned int sendAgentId, const std::vector<unsigned int>& receiveAgentIds, const std::string& data);
+	static void makeOpaqueSend(OngoingSerialization& ongoing, const std::string& sendAgentId, const std::vector<std::string>& receiveAgentIds, const std::string& data);
 
 	//Serialize a "go_client" message.
-	static void makeGoClient(OngoingSerialization& ongoing, const std::map<unsigned int, WFD_Group>& wfdGroups);
+	static void makeGoClient(OngoingSerialization& ongoing, const std::map<std::string, WFD_Group>& wfdGroups);
 
 	//Serialize an unknown JSON-encoded message.
 	//TODO: This function will be removed soon, it is the only incompatibility currently left between v0 and v1.

@@ -52,12 +52,12 @@ void sm4ns3::AgentsInfoHandler::handle(const MessageConglomerate& messages, int 
 	AgentsInfoMessage aInfo = JsonParser::parseNewAgents(messages, msgNumber);
 
 	//Process add/remove agent requestss
-	for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
+	for (std::vector<std::string>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
 		ns3::Ptr<Agent> agent = ns3::CreateObject<sm4ns3::Agent>(*it, broker);
 		agent->init();
 		sm4ns3::Agent::AddAgent(*it, agent);
 	}
-	for (std::vector<unsigned int>::const_iterator it=aInfo.remAgentIds.begin(); it!=aInfo.remAgentIds.end(); it++) {
+	for (std::vector<std::string>::const_iterator it=aInfo.remAgentIds.begin(); it!=aInfo.remAgentIds.end(); it++) {
 		sm4ns3::Agent::RemoveAgent(*it);
 	}
 }
@@ -69,8 +69,8 @@ void sm4ns3::AllLocationHandler::handle(const MessageConglomerate& messages, int
 	AllLocationsMessage aInfo = JsonParser::parseAllLocations(messages, msgNumber);
 
 	//Now react accordingly.
-	std::map<unsigned int, ns3::Ptr<Agent> >& all_agents = Agent::getAgents();
-	for (std::map<unsigned int, sm4ns3::DPoint>::const_iterator it=aInfo.agentLocations.begin(); it!=aInfo.agentLocations.end(); it++) {
+	std::map<std::string, ns3::Ptr<Agent> >& all_agents = Agent::getAgents();
+	for (std::map<std::string, sm4ns3::DPoint>::const_iterator it=aInfo.agentLocations.begin(); it!=aInfo.agentLocations.end(); it++) {
 		if(all_agents.find(it->first) == all_agents.end()) {
 			std::cout <<"Agent id (" <<it->first << ") not found.\n";
 			continue;
@@ -107,7 +107,7 @@ void sm4ns3::OpaqueSendHandler::handle(const MessageConglomerate& messages, int 
 	res["data"] = osMsg.data;
 
 	//Retrieve the sending agent.
-	ns3::Ptr<Agent> sending_agent = sm4ns3::Agent::getAgent(res["from_id"].asUInt());
+	ns3::Ptr<Agent> sending_agent = sm4ns3::Agent::getAgent(res["from_id"].asString());
 	if (!sending_agent) {
 		std::cout <<"Sending agent is invalid.\n";
 		return;
@@ -123,7 +123,7 @@ void sm4ns3::OpaqueSendHandler::handle(const MessageConglomerate& messages, int 
 		//res["TICK_SENT"] = broker->m_global_tick;
 
 		//Retrieve the current recipient.
-		ns3::Ptr<Agent> receiving_agent = sm4ns3::Agent::getAgent(res["to_id"].asUInt());
+		ns3::Ptr<Agent> receiving_agent = sm4ns3::Agent::getAgent(res["to_id"].asString());
 		if (!receiving_agent) {
 			std::cout <<"Receiving agent is invalid.\n";
 			continue;

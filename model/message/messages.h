@@ -37,13 +37,13 @@ struct MulticastMessage : public sm4ns3::MessageBase {
 };
 
 struct AgentsInfoMessage : public sm4ns3::MessageBase {
-	std::vector<unsigned int> addAgentIds; ///<Agent IDs to add
-	std::vector<unsigned int> remAgentIds; ///<Agent IDs to remove
+	std::vector<std::string> addAgentIds; ///<Agent IDs to add
+	std::vector<std::string> remAgentIds; ///<Agent IDs to remove
 	AgentsInfoMessage(const MessageBase& base) : MessageBase(base) {}
 };
 
 struct AllLocationsMessage : public sm4ns3::MessageBase {
-	std::map<unsigned int, DPoint> agentLocations; ///<Maps agentID=>(x,y) updates for locations.
+	std::map<std::string, DPoint> agentLocations; ///<Maps agentID=>(x,y) updates for locations.
 	AllLocationsMessage(const MessageBase& base) : MessageBase(base) {}
 };
 

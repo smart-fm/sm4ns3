@@ -27,13 +27,13 @@ class ProfileBuilder;
 
 //These structs cache the data found in the trace file, so that it can be pulled up faster.
 struct TickMulticast {
-	unsigned int sendAgId;
-	std::vector<unsigned int> receiveAgId;
+	std::string sendAgId;
+	std::vector<std::string> receiveAgId;
 	std::string mcData;
 };
 struct TimeTick {
-	std::vector<unsigned int> add_agent; //agentId
-	std::map<unsigned int, DPoint> update_agent;  //agentID => (x,y)
+	std::vector<std::string> add_agent; //agentId
+	std::map<std::string, DPoint> update_agent;  //agentID => (x,y)
 	std::vector<TickMulticast> multicast;
 };
 
@@ -64,7 +64,7 @@ private:
 	std::map<unsigned int, TimeTick> trace_time_ticks;
 
 	//Helper: known agent ids (used for building only)
-	std::set<unsigned int> agent_limit;
+	std::set<std::string> agent_limit;
 
 	//How we iterate.
 	std::map<unsigned int, TimeTick>::const_iterator prevTick;
@@ -96,7 +96,7 @@ private:
 	//then the id of nth agent in the set is obtained('max id').
 	//and during the simulation, the lines having id 
 	//greter than the 'max id' are discarded.
-	std::set<unsigned int> agentsList;//temporary holder
+	std::set<std::string> agentsList;//temporary holder
 	ProfileBuilder* profiler;
 
 };

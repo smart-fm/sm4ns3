@@ -162,7 +162,7 @@ void sm4ns3::RoadRunnerBaseLine::createNodes()
 	mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 	mobility.Install(RRNC);
 	
-	std::set<unsigned int>::const_iterator it_agent = agentsList.begin();
+	std::set<std::string>::const_iterator it_agent = agentsList.begin();
 	ns3::Ipv4InterfaceContainer::Iterator it_ii = iic.Begin();
 	uint32_t i = 0;
 	while(i != RRNC.GetN()){
@@ -255,8 +255,7 @@ void sm4ns3::RoadRunnerBaseLine::parseLine(const std::string &line)
 	unsigned int currTime = boost::lexical_cast<unsigned int>(timeStr); //NOTE: May need +1 here.
 
 	//agent (token[2])
-	std::string agIdStr = tokens[2].substr(tokens[2].find(":")+1 , tokens[2].size() - tokens[2].find(":"));
-	unsigned int agId = boost::lexical_cast<unsigned int>(agIdStr);
+	std::string agId = tokens[2].substr(tokens[2].find(":")+1 , tokens[2].size() - tokens[2].find(":"));
 
 
 	//based on the line-type token, process the rest of the tokens
@@ -303,7 +302,7 @@ void sm4ns3::RoadRunnerBaseLine::parseLine(const std::string &line)
 
 		for (std::vector<std::string>::const_iterator it=tempVec.begin(); it!=tempVec.end(); it++) {
 			if (!it->empty()) {
-				res.receiveAgId.push_back(boost::lexical_cast<unsigned int>(*it));
+				res.receiveAgId.push_back(*it);
 			}
 		}
 

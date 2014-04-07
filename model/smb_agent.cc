@@ -28,7 +28,7 @@ BaseWifi Agent::m_wifi = temp;
 
 sm4ns3::BaseMobility sm4ns3::Agent::m_mobility;
 sm4ns3::BaseIP sm4ns3::Agent::m_ip;
-std::map<unsigned int, ns3::Ptr<sm4ns3::Agent> > sm4ns3::Agent::AllAgents;
+std::map<std::string, ns3::Ptr<sm4ns3::Agent> > sm4ns3::Agent::AllAgents;
 
 
 namespace {
@@ -83,11 +83,11 @@ ns3::Ipv4Address GetPacketSource(Ptr<Packet> packet)
 /////////////////////////////////////////////////////
 
 
-sm4ns3::Agent::Agent(int m_AgentId_, BrokerBase* broker) : broker(broker), m_AgentId(m_AgentId_), m_isa(NULL)
+sm4ns3::Agent::Agent(const std::string& m_AgentId_, BrokerBase* broker) : broker(broker), m_AgentId(m_AgentId_), m_isa(NULL)
 {
 }
 
-sm4ns3::Agent::Agent(int m_AgentId_, Ptr<Node> node, BrokerBase* broker) : broker(broker), m_AgentId(m_AgentId_), m_node(node), m_isa(NULL)
+sm4ns3::Agent::Agent(const std::string& m_AgentId_, Ptr<Node> node, BrokerBase* broker) : broker(broker), m_AgentId(m_AgentId_), m_node(node), m_isa(NULL)
 {
 }
 
@@ -123,17 +123,17 @@ ns3::TypeId sm4ns3::Agent::GetTypeId(void)
 }
 
 
-std::map<unsigned int,ns3::Ptr<Agent> >& sm4ns3::Agent::getAgents()
+std::map<std::string,ns3::Ptr<Agent> >& sm4ns3::Agent::getAgents()
 {
 	return Agent::AllAgents;
 }
 
-ns3::Ptr<Agent>& sm4ns3::Agent::getAgent(unsigned int id)
+ns3::Ptr<Agent>& sm4ns3::Agent::getAgent(const std::string& agId)
 {
-	if(Agent::AllAgents.find(id) == Agent::AllAgents.end()) {
-		NS_LOG_UNCOND( "Agent::getAgent Agent not found[" << id  << "]" );
+	if(Agent::AllAgents.find(agId) == Agent::AllAgents.end()) {
+		NS_LOG_UNCOND( "Agent::getAgent Agent not found[" <<agId  << "]" );
 	}
-	return Agent::AllAgents[id];
+	return Agent::AllAgents[agId];
 }
 
 
@@ -220,28 +220,23 @@ void sm4ns3::Agent::ReceivePacket (ns3::Ptr<ns3::Socket> socket)
 }
 
 
-void sm4ns3::Agent::AddAgent(unsigned int id, ns3::Ptr<Agent> value)
+void sm4ns3::Agent::AddAgent(const std::string& agId, ns3::Ptr<Agent> ag)
 {
-	AllAgents.insert(std::make_pair(id, value));
+	AllAgents.insert(std::make_pair(agId, ag));
 }
 
-void sm4ns3::Agent::RemoveAgent(unsigned int id)
+void sm4ns3::Agent::RemoveAgent(const std::string& agId)
 {
-	std::map<unsigned int, ns3::Ptr<Agent> >::iterator it;
-	if((it = AllAgents.find(id)) != AllAgents.end()) {
+	std::map<std::string, ns3::Ptr<Agent> >::iterator it;
+	if((it = AllAgents.find(agId)) != AllAgents.end()) {
 		it->second->Dispose();
 		AllAgents.erase(it);
 	}
 }
 
-int sm4ns3::Agent::GetAgentId() 
+std::string sm4ns3::Agent::GetAgentId() 
 {
 	return m_AgentId;
-}
-
-void sm4ns3::Agent::SetAgentId(int value) 
-{
-	m_AgentId = value;
 }
 
 ns3::Ptr<ns3::Node> sm4ns3::Agent::GetNode() 
@@ -294,7 +289,7 @@ int sm4ns3::Agent::SendTo(ns3::Ptr<Agent> agent, ns3::Ptr<ns3::Packet> packet)
 /////////////////////////////////////////////////////
 
 
-sm4ns3::WFD_Agent::WFD_Agent(int m_AgentId_, BrokerBase* broker):Agent(m_AgentId_,broker)
+sm4ns3::WFD_Agent::WFD_Agent(const std::string& m_AgentId_, BrokerBase* broker):Agent(m_AgentId_,broker)
 {
 }
 

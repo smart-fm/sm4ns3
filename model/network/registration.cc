@@ -133,7 +133,7 @@ bool sm4ns3::Registration::doAGENTS_INFO()
 		}
 
 		//Handle each new Agent ID
-		for (std::vector<unsigned int>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
+		for (std::vector<std::string>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
 			//TODO: Fix this further.
 			if (m_application=="Default") {
 				sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<Agent>(*it, broker));
@@ -150,7 +150,7 @@ bool sm4ns3::Registration::doAGENTS_INFO()
 
 bool sm4ns3::Registration::doInitialization()
 {
-	for(std::map<unsigned int, ns3::Ptr<Agent> >::const_iterator it = Agent::AllAgents.begin(); it!=Agent::AllAgents.end(); it++){
+	for(std::map<std::string, ns3::Ptr<Agent> >::const_iterator it = Agent::AllAgents.begin(); it!=Agent::AllAgents.end(); it++){
 		it->second->init();
 	}
 	return true;
@@ -226,7 +226,7 @@ bool sm4ns3::WFD_Registration::doInitialization()
 //todo: change this sophisticated algorithm :) to support multiple wfd groups in a simulation
 bool sm4ns3::WFD_Registration::doRoleAssignment()
 {
-	std::map<unsigned int,ns3::Ptr<Agent> >::iterator it = sm4ns3::Agent::getAgents().begin();
+	std::map<std::string, ns3::Ptr<Agent> >::iterator it = sm4ns3::Agent::getAgents().begin();
 
 	//VERY primitive way that will:
 	//1-choose the first node in the list as GO
