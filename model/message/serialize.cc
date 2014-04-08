@@ -400,8 +400,8 @@ sm4ns3::OpaqueSendMessage sm4ns3::JsonParser::parseOpaqueSend(const MessageCongl
 
 void sm4ns3::JsonParser::makeIdResponse(OngoingSerialization& ongoing, const std::string& token) 
 {
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
+	if (PREFER_BINARY_MESSAGES) {
+		throw std::runtime_error("addX() for binary messages not yet supported."); 
 	} else {
 		Json::Value res;
 		res["msg_type"] = "id_response";
@@ -410,38 +410,35 @@ void sm4ns3::JsonParser::makeIdResponse(OngoingSerialization& ongoing, const std
 		res["type"] = "ns-3";
 		res["services"].append("srv_all_locations");
 
-		//Now append it.
+		//Serialize it.
 		std::string nextMsg = Json::FastWriter().write(res);
-		ongoing.messages <<nextMsg;
 
 		//Keep the header up-to-date.
-		ongoing.vHead.msgLengths.push_back(nextMsg.size());
+		addGeneric(ongoing, nextMsg);
 	}
 }
 
 void sm4ns3::JsonParser::makeTickedClient(OngoingSerialization& ongoing)
 {
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
+	if (PREFER_BINARY_MESSAGES) {
+		throw std::runtime_error("addX() for binary messages not yet supported.");
 	} else {
 		Json::Value res;
 		res["msg_type"] = "ticked_client";
 
-		//Now append it.
+		//Serialize it.
 		std::string nextMsg = Json::FastWriter().write(res);
-		ongoing.messages <<nextMsg;
 
 		//Keep the header up-to-date.
-		ongoing.vHead.msgLengths.push_back(nextMsg.size());
-		ongoing.vHead.sendId = "0"; //TODO: This really shouldn't be 0; that's what Sim Mobility uses.
+		addGeneric(ongoing, nextMsg);
 	}
 }
 
 
 void sm4ns3::JsonParser::makeAllLocations(OngoingSerialization& ongoing, const std::map<std::string, DPoint>& allLocations)
 {
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
+	if (PREFER_BINARY_MESSAGES) {
+		throw std::runtime_error("addX() for binary messages not yet supported.");
 	} else {
 		Json::Value res;
 		res["msg_type"] = "all_locations";
@@ -455,21 +452,19 @@ void sm4ns3::JsonParser::makeAllLocations(OngoingSerialization& ongoing, const s
 			res["locations"].append(singleAgent);
 		}
 
-		//Now append it.
+		//Serialize it.
 		std::string nextMsg = Json::FastWriter().write(res);
-		ongoing.messages <<nextMsg;
 
 		//Keep the header up-to-date.
-		ongoing.vHead.msgLengths.push_back(nextMsg.size());
-		ongoing.vHead.sendId = "0"; //TODO: This really shouldn't be 0; that's what Sim Mobility uses.
+		addGeneric(ongoing, nextMsg);
 	}
 }
 
 
 void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, const std::string& sendAgentId, const std::vector<std::string>& receiveAgentIds, const std::string& data)
 {
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
+	if (PREFER_BINARY_MESSAGES) {
+		throw std::runtime_error("addX() for binary messages not yet supported.");
 	} else {
 		Json::Value res;
 		res["msg_type"] = "opaque_send";
@@ -486,21 +481,19 @@ void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, const std
 		//Heuristic:
 		res["broadcast"] = receiveAgentIds.empty();
 
-		//Now append it.
+		//Serialize it.
 		std::string nextMsg = Json::FastWriter().write(res);
-		ongoing.messages <<nextMsg;
 
 		//Keep the header up-to-date.
-		ongoing.vHead.msgLengths.push_back(nextMsg.size());
-		ongoing.vHead.sendId = "0"; //TODO: This really shouldn't be 0; that's what Sim Mobility uses.
+		addGeneric(ongoing, nextMsg);
 	}
 }
 
 
 void sm4ns3::JsonParser::makeGoClient(OngoingSerialization& ongoing, const std::map<std::string, WFD_Group>& wfdGroups)
 {
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
+	if (PREFER_BINARY_MESSAGES) {
+		throw std::runtime_error("addX() for binary messages not yet supported.");
 	} else {
 		//First make the single message.
 		Json::Value res;
@@ -516,29 +509,40 @@ void sm4ns3::JsonParser::makeGoClient(OngoingSerialization& ongoing, const std::
 			res["groups"].append(clientMsg);
 		}
 
-		//Now append it.
+		//Serialize it.
 		std::string nextMsg = Json::FastWriter().write(res);
-		ongoing.messages <<nextMsg;
 
 		//Keep the header up-to-date.
-		ongoing.vHead.msgLengths.push_back(nextMsg.size());
-		ongoing.vHead.sendId = "0"; //TODO: This really shouldn't be 0; that's what Sim Mobility uses.
+		addGeneric(ongoing, nextMsg);
 	}
 }
 
 void sm4ns3::JsonParser::makeUnknownJSON(OngoingSerialization& ongoing, const Json::Value& json)
 {
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("addX() for NEW_BUNDLES not yet supported."); 
+	if (PREFER_BINARY_MESSAGES) {
+		throw std::runtime_error("addX() for binary messages not yet supported.");
 	} else {
-		//Just append, and hope it's formatted correctly.
+		//Just serialize, and hope it's formatted correctly.
 		std::string nextMsg = Json::FastWriter().write(json);
-		ongoing.messages <<nextMsg;
 
 		//Keep the header up-to-date.
-		ongoing.vHead.msgLengths.push_back(nextMsg.size());
-		ongoing.vHead.sendId = "0"; //TODO: This really shouldn't be 0; that's what Sim Mobility uses.
+		addGeneric(ongoing, nextMsg);
 	}
+}
+
+
+void sm4ns3::JsonParser::addGeneric(OngoingSerialization& ongoing, const std::string& msg)
+{
+	//Just append, and hope it's formatted correctly.
+	if (NEW_BUNDLES) {
+		ongoing.messages <<msg;
+	} else {
+		//We actually need to represent a JSON vector.
+		ongoing.messages <<(ongoing.messages.str().empty()?"":",") <<msg;
+	}
+
+	//Keep the header up-to-date.
+	ongoing.vHead.msgLengths.push_back(msg.size());
 }
 
 

@@ -162,6 +162,9 @@ private:
 
 	///Helper: serialize v1
 	static bool serialize_end_v1(const OngoingSerialization& ongoing, BundleHeader& hRes, std::string& res);
+
+	//Helper: keep our header up-to-date
+	static void addGeneric(OngoingSerialization& ongoing, const std::string& msg);
 };
 
 }
