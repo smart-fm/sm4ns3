@@ -42,11 +42,15 @@ public:
 	///Get message count (both versions)
 	int getCount() const;
 
-	///Used to retrieve; v0
-	const Json::Value& getMessage(int msgNumber) const;
+	///Retrieves the MessageBase for a given message number. Works for v0 and v1. Used for easily extracting the type.
+	MessageBase getBaseMessage(int msgNumber) const;
 
-	///Used to retrieve; v1
-	void getMessage(int msgNumber, int& offset, int& length) const;
+	///Retrieves a Json::Value representing this message. For v0, this is always valid.
+	///For v1, this is null if a binary mesage.
+	const Json::Value& getJsonMessage(int msgNumber) const;
+
+	///Used to retrieve; v1. Fails on v0. (Use this+underlying string to parse binary messages).
+	void getRawMessage(int msgNumber, int& offset, int& length) const;
 
 	///Retriee the underlying message string; v1
 	const std::string& getUnderlyingString() const;
@@ -58,15 +62,21 @@ public:
 	const std::string& getSenderId() const;
 
 private:
+	//Helper: deserialize common properties associated with all messages.
+	static void ParseJsonMessageBase(const Json::Value& root, MessageBase& res);
+
 	//We include a copy of the sender's ID (destination will always be 0, since MessageConglomerates are only used for received messages.
 	std::string senderId;
 
-	//v0 only requires this.
-	std::vector<Json::Value> messages_v0;
+	//v0 only requires this. v1 will save a "null" Json value for every binary messgae and a Json value for every non-binary.
+	std::vector<Json::Value> messages_json;
 
 	//v1 requires a bit more.
 	std::string messages_v1;
 	std::vector< std::pair<int, int> > offsets_v1; //<start, length>
+
+	//Both have access to this.
+	std::vector<MessageBase> message_bases;
 };
 
 
@@ -118,9 +128,6 @@ public:
 
 	//Turn a string into a Json::Value object. NOTE: This is only used in one very specific case.
 	static bool parseJSON(const std::string& input, Json::Value &output);
-
-	//Deserialize common properties associated with all messages.
-	static MessageBase parseMessageBase(const MessageConglomerate& msg, int msgNumber);
 
 	//Deserialize a "new_agents" message. 
 	static AgentsInfoMessage parseNewAgents(const MessageConglomerate& msg, int msgNumber);

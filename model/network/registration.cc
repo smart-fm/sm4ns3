@@ -77,30 +77,29 @@ bool sm4ns3::Registration::doWhoAreYou()
 		return false;
 	}
 
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("Registration for NEW_BUNDLES not yet supported."); 
-	} else {
-		const Json::Value& props = conglom.getMessage(0);
+	//TODO: Move this into the Serializer class.
+	const Json::Value& props = conglom.getJsonMessage(0);
+	if (props.isNull()) {
+		throw std::runtime_error("Can't deserialize binary id_request (in registration)."); 
+	}
 
-		//Make sure it has a token.
-		if (!props.isMember("token")) {
-			std::cout <<"ERROR: \"token\" not found\n";
-			return false;
-		}
+	//Make sure it has a token.
+	if (!props.isMember("token")) {
+		std::cout <<"ERROR: \"token\" not found\n";
+		return false;
+	}
 
-		//Prepare a response.
-		sm4ns3::OngoingSerialization res;
-		JsonParser::serialize_begin(res);
-		JsonParser::makeIdResponse(res, props["token"].asString());
+	//Prepare a response.
+	sm4ns3::OngoingSerialization res;
+	JsonParser::serialize_begin(res);
+	JsonParser::makeIdResponse(res, props["token"].asString());
 
-		std::string whoami;
-		sm4ns3::BundleHeader head;
-		JsonParser::serialize_end(res, head, whoami);
+	std::string whoami;
+	JsonParser::serialize_end(res, head, whoami);
 
-		if (!broker->getConnection().send(head, whoami)) {
-			std::cout <<"ERROR: unable to send WHOAMI response.\n";
-			return false;
-		}
+	if (!broker->getConnection().send(head, whoami)) {
+		std::cout <<"ERROR: unable to send WHOAMI response.\n";
+		return false;
 	}
 	return true;
 }
@@ -123,26 +122,28 @@ bool sm4ns3::Registration::doAGENTS_INFO()
 		return false;
 	}
 
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("Registration for NEW_BUNDLES not yet supported."); 
-	} else {
-		//Parse it using existing functionality.
-		AgentsInfoMessage aInfo = JsonParser::parseNewAgents(conglom, 0);
-		if (aInfo.addAgentIds.empty()) {
-			std::cout <<"ADD Agents info not found (empty).\n";
-			return false;
-		}
+	//TODO: Move this into the Serializer class.
+	const Json::Value& props = conglom.getJsonMessage(0);
+	if (props.isNull()) {
+		throw std::runtime_error("Can't deserialize binary new_agents (in registration)."); 
+	}
 
-		//Handle each new Agent ID
-		for (std::vector<std::string>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
-			//TODO: Fix this further.
-			if (m_application=="Default") {
-				sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<Agent>(*it, broker));
-			} else if (m_application=="stk") {
-				sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<WFD_Agent>(*it, broker));
-			} else {
-				throw std::runtime_error("Invalid m_application.");
-			}
+	//Parse it using existing functionality.
+	AgentsInfoMessage aInfo = JsonParser::parseNewAgents(conglom, 0);
+	if (aInfo.addAgentIds.empty()) {
+		std::cout <<"ADD Agents info not found (empty).\n";
+		return false;
+	}
+
+	//Handle each new Agent ID
+	for (std::vector<std::string>::const_iterator it=aInfo.addAgentIds.begin(); it!=aInfo.addAgentIds.end(); it++) {
+		//TODO: Fix this further.
+		if (m_application=="Default") {
+			sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<Agent>(*it, broker));
+		} else if (m_application=="stk") {
+			sm4ns3::Agent::AddAgent(*it, ns3::CreateObject<WFD_Agent>(*it, broker));
+		} else {
+			throw std::runtime_error("Invalid m_application.");
 		}
 	}
 

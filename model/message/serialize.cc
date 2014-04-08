@@ -22,7 +22,9 @@ void sm4ns3::MessageConglomerate::addMessage(const Json::Value& msg)
 {
 	if (NEW_BUNDLES) { throw std::runtime_error("Error, attempting to construct v0 MessageConglomerate."); }
 
-	messages_v0.push_back(msg);
+	messages_json.push_back(msg);
+	message_bases.push_back(MessageBase());
+	ParseJsonMessageBase(messages_json.back(), message_bases.back());
 }
 
 
@@ -31,29 +33,73 @@ void sm4ns3::MessageConglomerate::addMessage(int offset, int length, const std::
 	if (!NEW_BUNDLES) { throw std::runtime_error("Error, attempting to construct v1 MessageConglomerate."); }
 	if (offsets_v1.empty() && msgStr.empty()) { throw std::runtime_error("Error; msgString must be non-empty for the first message."); }
 	
-	offsets_v1.push_back(std::make_pair(offset, length));
+	//Save the message string, ONCE
 	if (!msgStr.empty()) {
+		if (!messages_v1.empty()) {
+			throw std::runtime_error("Can't overwrite the message string once set.");
+		}
 		messages_v1 = msgStr;
 	}
+
+	//Make sure our offset is not out of bounds.
+	if (offset<0 || offset+length>static_cast<int>(messages_v1.length())) {
+		throw std::runtime_error("Can't add message: total length exceeds length of message string.");
+	}
+
+	//Save the offset.
+	offsets_v1.push_back(std::make_pair(offset, length));
+
+	//Now try to parse the message type.
+	messages_json.push_back(Json::Value());
+	message_bases.push_back(MessageBase());
+
+	//Check the first character to determine the type (binary/json).
+	const char* raw = messages_v1.c_str();
+	if (static_cast<unsigned char>(raw[offset]) == 0xBB) {
+		throw std::runtime_error("Base (v1) message binary format not yet supported.");
+	} else if (static_cast<unsigned char>(raw[offset]) == '{') {
+		Json::Reader reader;
+		if (!reader.parse(&raw[offset], &raw[offset+length], messages_json.back(), false)) {
+			throw std::runtime_error("Parsing JSON message base failed.");
+		}
+
+		ParseJsonMessageBase(messages_json.back(), message_bases.back());
+	} else {
+		throw std::runtime_error("Unable to determine v1 message format (binary or JSON).");
+	}
 }
+
+
+void sm4ns3::MessageConglomerate::ParseJsonMessageBase(const Json::Value& root, MessageBase& res)
+{
+	//Check the type string.
+	if (!root.isMember("msg_type")) {
+		throw std::runtime_error("Base message is missing required parameter 'msg_type'.");
+	}
+	res.msg_type = root["msg_type"].asString();
+}
+
 
 int sm4ns3::MessageConglomerate::getCount() const
 {
 	if (NEW_BUNDLES) {
 		return offsets_v1.size();
 	} else {
-		return messages_v0.size();
+		return messages_json.size();
 	}
 }
 
-const Json::Value& sm4ns3::MessageConglomerate::getMessage(int msgNumber) const
+sm4ns3::MessageBase sm4ns3::MessageConglomerate::getBaseMessage(int msgNumber) const
 {
-	if (NEW_BUNDLES) { throw std::runtime_error("Error, attempting to retrieve v0 MessageConglomerate."); }
-
-	return messages_v0.at(msgNumber);
+	return message_bases.at(msgNumber);
 }
 
-void sm4ns3::MessageConglomerate::getMessage(int msgNumber, int& offset, int& length) const
+const Json::Value& sm4ns3::MessageConglomerate::getJsonMessage(int msgNumber) const
+{
+	return messages_json.at(msgNumber);
+}
+
+void sm4ns3::MessageConglomerate::getRawMessage(int msgNumber, int& offset, int& length) const
 {
 	if (!NEW_BUNDLES) { throw std::runtime_error("Error, attempting to retrieve v1 MessageConglomerate [1]."); }
 
@@ -256,17 +302,13 @@ bool sm4ns3::JsonParser::deserialize_single(const BundleHeader& header, const st
 	}
 
 	//Make sure it's actually of the expected type.
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("deserialize_single for NEW_BUNDLES not yet supported."); 
-	} else {
-		if (!(remConglom.getMessage(0).isMember("msg_type") && remConglom.getMessage(0)["msg_type"] == expectedType)) {
-			std::cout <<"Error: unexpected message type (or none).\n";
-			return false;
-		}
+	if (remConglom.getBaseMessage(0).msg_type!= expectedType) {
+		std::cout <<"Error: unexpected message type (or none).\n";
+		return false;
 	}
 
 	//Parse it into a base message; we'll deal with the custom properties on our own.
-	resMsg = JsonParser::parseMessageBase(remConglom, 0);
+	resMsg = remConglom.getBaseMessage(0);
 
 	return true;
 }
@@ -284,35 +326,13 @@ bool sm4ns3::JsonParser::parseJSON(const std::string& input, Json::Value &output
 }
 
 
-sm4ns3::MessageBase sm4ns3::JsonParser::parseMessageBase(const MessageConglomerate& msg, int msgNumber)
-{
-	sm4ns3::MessageBase res;
-
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("deserialize_single for NEW_BUNDLES not yet supported."); 
-	} else {
-		const Json::Value& jsMsg = msg.getMessage(msgNumber);
-
-		//Common properties.
-		if (!jsMsg.isMember("msg_type")) {
-			throw std::runtime_error("Base message is missing some required parameters."); 
-		}
-
-		res.msg_type = jsMsg["msg_type"].asString();
-	}
-	return res;
-}
-
-
 sm4ns3::AgentsInfoMessage sm4ns3::JsonParser::parseNewAgents(const MessageConglomerate& msg, int msgNumber)
 {
-	sm4ns3::AgentsInfoMessage res(JsonParser::parseMessageBase(msg, msgNumber));
+	sm4ns3::AgentsInfoMessage res(msg.getBaseMessage(msgNumber));
 
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("parse() for NEW_BUNDLES not yet supported."); 
-	} else {
-		const Json::Value& jsMsg = msg.getMessage(msgNumber);
-
+	//We are either parsing this as JSON, or as binary; version number doesn't matter in this case.
+	const Json::Value& jsMsg = msg.getJsonMessage(msgNumber);
+	if (!jsMsg.isNull()) {
 		//Add?
 		if (jsMsg.isMember("add")) {
 			if (!jsMsg["add"].isArray()) { throw std::runtime_error("AgentsInfo add should be an array."); }
@@ -330,6 +350,8 @@ sm4ns3::AgentsInfoMessage sm4ns3::JsonParser::parseNewAgents(const MessageConglo
 				res.remAgentIds.push_back(agents[i].asString());
 			}
 		}
+	} else {
+		throw std::runtime_error("parse() for binary messages not yet supported.");
 	}
 
 	return res;
@@ -339,13 +361,11 @@ sm4ns3::AgentsInfoMessage sm4ns3::JsonParser::parseNewAgents(const MessageConglo
 
 sm4ns3::AllLocationsMessage sm4ns3::JsonParser::parseAllLocations(const MessageConglomerate& msg, int msgNumber)
 {
-	sm4ns3::AllLocationsMessage res(JsonParser::parseMessageBase(msg, msgNumber));
+	sm4ns3::AllLocationsMessage res(msg.getBaseMessage(msgNumber));
 
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("parse() for NEW_BUNDLES not yet supported."); 
-	} else {
-		const Json::Value& jsMsg = msg.getMessage(msgNumber);
-
+	//We are either parsing this as JSON, or as binary; version number doesn't matter in this case.
+	const Json::Value& jsMsg = msg.getJsonMessage(msgNumber);
+	if (!jsMsg.isNull()) {
 		if (!(jsMsg.isMember("locations") && jsMsg["locations"].isArray())) { throw std::runtime_error("Badly formatted AllLocations message [1]."); }
 
 		//Parse each location into our map.
@@ -362,6 +382,8 @@ sm4ns3::AllLocationsMessage sm4ns3::JsonParser::parseAllLocations(const MessageC
 			double y = agInf["y"].asDouble();
 			res.agentLocations[agId] = DPoint(x,y);
 		}
+	} else {
+		throw std::runtime_error("parse() for binary messages not yet supported.");
 	}
 	return res;
 }
@@ -369,13 +391,11 @@ sm4ns3::AllLocationsMessage sm4ns3::JsonParser::parseAllLocations(const MessageC
 
 sm4ns3::OpaqueSendMessage sm4ns3::JsonParser::parseOpaqueSend(const MessageConglomerate& msg, int msgNumber)
 {
-	sm4ns3::OpaqueSendMessage res(JsonParser::parseMessageBase(msg, msgNumber));
+	sm4ns3::OpaqueSendMessage res(msg.getBaseMessage(msgNumber));
 
-	if (NEW_BUNDLES) {
-		throw std::runtime_error("parse() for NEW_BUNDLES not yet supported.");
-	} else {
-		const Json::Value& jsMsg = msg.getMessage(msgNumber);
-
+	//We are either parsing this as JSON, or as binary; version number doesn't matter in this case.
+	const Json::Value& jsMsg = msg.getJsonMessage(msgNumber);
+	if (!jsMsg.isNull()) {
 		if (!(jsMsg.isMember("from_id") && jsMsg.isMember("to_ids") && jsMsg.isMember("broadcast") && jsMsg.isMember("data") && jsMsg["to_ids"].isArray())) {
 			throw std::runtime_error("Badly formatted OPAQUE_SEND message.");
 		}
@@ -393,6 +413,8 @@ sm4ns3::OpaqueSendMessage sm4ns3::JsonParser::parseOpaqueSend(const MessageCongl
 		if (res.broadcast && !res.toIds.empty()) {
 			throw std::runtime_error("Cannot call opaque_send with both \"broadcast\" as true and a non-empty toIds list.");
 		}
+	} else {
+		throw std::runtime_error("parse() for binary messages not yet supported.");
 	}
 	return res;
 }

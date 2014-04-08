@@ -183,23 +183,12 @@ void sm4ns3::Broker::processIncoming()
 	while (m_incoming.pop(conglom)) {
 		//Conglomerates contain whole swaths of messages themselves.
 		for (int i=0; i<conglom.getCount(); i++) {
-			if (NEW_BUNDLES) {
-				throw std::runtime_error("processIncoming() for NEW_BUNDLES not yet supported."); 
+			//Get the handler, let it parse its own expected message type.
+			const sm4ns3::Handler* handler = handleLookup.getHandler(conglom.getBaseMessage(i).msg_type);
+			if (handler) {
+				handler->handle(conglom, i, this);
 			} else {
-				const Json::Value& jsMsg = conglom.getMessage(i);
-
-				if (!jsMsg.isMember("msg_type")) {
-					std::cout <<"Invalid message, no message_type\n";
-					return;
-				}
-
-				//Get the handler, let it parse its own expected message type.
-				const sm4ns3::Handler* handler = handleLookup.getHandler(jsMsg["msg_type"].asString());
-				if (handler) {
-					handler->handle(conglom, i, this);
-				} else {
-					std::cout <<"no handler for type \"" <<jsMsg["msg_type"].asString() << "\"\n";
-				}
+				std::cout <<"no handler for type: \"" <<conglom.getBaseMessage(i).msg_type << "\"\n";
 			}
 		}
 	}
@@ -245,14 +234,9 @@ bool sm4ns3::Broker::parsePacket(const BundleHeader& header, const std::string &
 	//We have to introspect a little bit, in order to find our READY_TO_RECEIVE message.
 	bool res = false;
 	for (int i=0; i<temp.getCount(); i++) {
-		if (NEW_BUNDLES) {
-			throw std::runtime_error("parseAgentsInfo() for NEW_BUNDLES not yet supported."); 
-		} else {
-			const Json::Value& jsMsg = temp.getMessage(i);
-			if (jsMsg.isMember("msg_type") && jsMsg["msg_type"] == "ticked_simmob") {
-				res = true;
-				break;
-			}
+		if (temp.getBaseMessage(i).msg_type == "ticked_simmob") {
+			res = true;
+			break;
 		}
 	}
 
