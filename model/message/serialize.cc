@@ -203,7 +203,7 @@ bool sm4ns3::JsonParser::serialize_end_v0(const OngoingSerialization& ongoing, B
 	Json::Value root;
 	root["header"] = pktHeader;
 	root["messages"] = dataArr;
-	res = Json::FastWriter().write(root);
+	res = JsonSingleLineWriter(!NEW_BUNDLES).write(root);
 
 	//Reflect changes to the bundle header.
 	hRes.sendIdLen = ongoing.vHead.sendId.size();
@@ -433,7 +433,7 @@ void sm4ns3::JsonParser::makeIdResponse(OngoingSerialization& ongoing, const std
 		res["services"].append("srv_all_locations");
 
 		//Serialize it.
-		std::string nextMsg = Json::FastWriter().write(res);
+		std::string nextMsg = JsonSingleLineWriter(!NEW_BUNDLES).write(res);
 
 		//Keep the header up-to-date.
 		addGeneric(ongoing, nextMsg);
@@ -449,7 +449,7 @@ void sm4ns3::JsonParser::makeTickedClient(OngoingSerialization& ongoing)
 		res["msg_type"] = "ticked_client";
 
 		//Serialize it.
-		std::string nextMsg = Json::FastWriter().write(res);
+		std::string nextMsg = JsonSingleLineWriter(!NEW_BUNDLES).write(res);
 
 		//Keep the header up-to-date.
 		addGeneric(ongoing, nextMsg);
@@ -475,7 +475,7 @@ void sm4ns3::JsonParser::makeAllLocations(OngoingSerialization& ongoing, const s
 		}
 
 		//Serialize it.
-		std::string nextMsg = Json::FastWriter().write(res);
+		std::string nextMsg = JsonSingleLineWriter(!NEW_BUNDLES).write(res);
 
 		//Keep the header up-to-date.
 		addGeneric(ongoing, nextMsg);
@@ -504,7 +504,7 @@ void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, const std
 		res["broadcast"] = receiveAgentIds.empty();
 
 		//Serialize it.
-		std::string nextMsg = Json::FastWriter().write(res);
+		std::string nextMsg = JsonSingleLineWriter(!NEW_BUNDLES).write(res);
 
 		//Keep the header up-to-date.
 		addGeneric(ongoing, nextMsg);
@@ -532,7 +532,7 @@ void sm4ns3::JsonParser::makeGoClient(OngoingSerialization& ongoing, const std::
 		}
 
 		//Serialize it.
-		std::string nextMsg = Json::FastWriter().write(res);
+		std::string nextMsg = JsonSingleLineWriter(!NEW_BUNDLES).write(res);
 
 		//Keep the header up-to-date.
 		addGeneric(ongoing, nextMsg);
@@ -545,7 +545,7 @@ void sm4ns3::JsonParser::makeUnknownJSON(OngoingSerialization& ongoing, const Js
 		throw std::runtime_error("addX() for binary messages not yet supported.");
 	} else {
 		//Just serialize, and hope it's formatted correctly.
-		std::string nextMsg = Json::FastWriter().write(json);
+		std::string nextMsg = JsonSingleLineWriter(!NEW_BUNDLES).write(json);
 
 		//Keep the header up-to-date.
 		addGeneric(ongoing, nextMsg);
@@ -569,5 +569,87 @@ void sm4ns3::JsonParser::addGeneric(OngoingSerialization& ongoing, const std::st
 
 
 
+///////////////////////////////////
+// JsonSingleLineWriter methods.
+///////////////////////////////////
+
+
+sm4ns3::JsonSingleLineWriter::JsonSingleLineWriter(bool appendNewline) : yamlCompatiblityEnabled_( false ), appendNewline(appendNewline)
+{
+}
+
+
+void sm4ns3::JsonSingleLineWriter::enableYAMLCompatibility()
+{
+   yamlCompatiblityEnabled_ = true;
+}
+
+
+std::string sm4ns3::JsonSingleLineWriter::write(const Json::Value &root)
+{
+   document_.str("");
+   writeValue( root );
+   if (appendNewline) {    //NOTE: This is the first major difference between JsonSingleLineWriter and FastWriter.
+	   document_ << "\n";
+   }
+   return document_.str(); //NOTE: This (using a stringstream instead of a string) is the second major difference.
+}
+
+
+void sm4ns3::JsonSingleLineWriter::writeValue(const Json::Value &value)
+{
+   switch ( value.type() )
+   {
+   case Json::nullValue:
+      document_ << "null";
+      break;
+   case Json::intValue:
+      document_ << Json::valueToString( value.asInt() );
+      break;
+   case Json::uintValue:
+      document_ << Json::valueToString( value.asUInt() );
+      break;
+   case Json::realValue:
+      document_ << Json::valueToString( value.asDouble() );
+      break;
+   case Json::stringValue:
+      document_ << Json::valueToQuotedString( value.asCString() );
+      break;
+   case Json::booleanValue:
+      document_ << Json::valueToString( value.asBool() );
+      break;
+   case Json::arrayValue:
+      {
+         document_ << "[";
+         int size = value.size();
+         for ( int index =0; index < size; ++index )
+         {
+            if ( index > 0 )
+               document_ << ",";
+            writeValue( value[index] );
+         }
+         document_ << "]";
+      }
+      break;
+   case Json::objectValue:
+      {
+         Json::Value::Members members( value.getMemberNames() );
+         document_ << "{";
+         for ( Json::Value::Members::iterator it = members.begin();
+               it != members.end();
+               ++it )
+         {
+            const std::string &name = *it;
+            if ( it != members.begin() )
+               document_ << ",";
+            document_ << Json::valueToQuotedString( name.c_str() );
+            document_ << (yamlCompatiblityEnabled_ ? ": " : ":");
+            writeValue( value[name] );
+         }
+         document_ << "}";
+      }
+      break;
+   }
+}
 
 

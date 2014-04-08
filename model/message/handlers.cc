@@ -130,7 +130,7 @@ void sm4ns3::OpaqueSendHandler::handle(const MessageConglomerate& messages, int 
 		}
 
 		//Serialize and send the message.
-		std::string str = Json::FastWriter().write(res);
+		std::string str = JsonSingleLineWriter(!NEW_BUNDLES).write(res);
 		ns3::Ptr<ns3::Packet> packet = ns3::Create<ns3::Packet>((uint8_t*) str.c_str(), str.length());
 		if (sending_agent->SendTo(receiving_agent,packet)==-1) {
 			std::cout <<"ERROR: Message could not be sent.\n";
