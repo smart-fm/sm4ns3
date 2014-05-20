@@ -18,7 +18,7 @@ using namespace ns3;
 
 //Command line parameters.
 std::string application = "stk";
-std::string host = "localhost";
+std::string host = "127.0.0.1";
 std::string port = "6745";
 
 

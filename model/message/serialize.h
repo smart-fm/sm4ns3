@@ -177,7 +177,7 @@ public:
 
 	//Serialize an "opaque_send" message (used in the trace runner).
 	//(The actual client simply mutates the incoming OPAQUE_SEND message, so this function is only used in trace.)
-	static void makeOpaqueSend(OngoingSerialization& ongoing, const std::string& sendAgentId, const std::vector<std::string>& receiveAgentIds, const std::string& data);
+	static void makeOpaqueSend(OngoingSerialization& ongoing, const std::string& sendAgentId, const std::vector<std::string>& receiveAgentIds, const std::string& data, const std::string& format, const std::string& tech);
 
 	//Serialize a "go_client" message.
 	static void makeGoClient(OngoingSerialization& ongoing, const std::map<std::string, WFD_Group>& wfdGroups);

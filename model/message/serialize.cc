@@ -396,7 +396,7 @@ sm4ns3::OpaqueSendMessage sm4ns3::JsonParser::parseOpaqueSend(const MessageCongl
 	//We are either parsing this as JSON, or as binary; version number doesn't matter in this case.
 	const Json::Value& jsMsg = msg.getJsonMessage(msgNumber);
 	if (!jsMsg.isNull()) {
-		if (!(jsMsg.isMember("from_id") && jsMsg.isMember("to_ids") && jsMsg.isMember("broadcast") && jsMsg.isMember("data") && jsMsg["to_ids"].isArray())) {
+		if (!(jsMsg.isMember("from_id") && jsMsg.isMember("to_ids") && jsMsg.isMember("broadcast") && jsMsg.isMember("data") && jsMsg.isMember("format") && jsMsg.isMember("tech") && jsMsg["to_ids"].isArray())) {
 			throw std::runtime_error("Badly formatted OPAQUE_SEND message.");
 		}
 
@@ -404,6 +404,8 @@ sm4ns3::OpaqueSendMessage sm4ns3::JsonParser::parseOpaqueSend(const MessageCongl
 		res.fromId = jsMsg["from_id"].asString();
 		res.broadcast = jsMsg["broadcast"].asBool();
 		res.data = jsMsg["data"].asString();
+		res.format = jsMsg["format"].asString();
+		res.tech = jsMsg["tech"].asString();
 		const Json::Value& toIds = jsMsg["to_ids"];
 		for (unsigned int i=0; i<toIds.size(); i++) {
 			res.toIds.push_back(toIds[i].asString());
@@ -483,7 +485,7 @@ void sm4ns3::JsonParser::makeAllLocations(OngoingSerialization& ongoing, const s
 }
 
 
-void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, const std::string& sendAgentId, const std::vector<std::string>& receiveAgentIds, const std::string& data)
+void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, const std::string& sendAgentId, const std::vector<std::string>& receiveAgentIds, const std::string& data, const std::string& format, const std::string& tech)
 {
 	if (PREFER_BINARY_MESSAGES) {
 		throw std::runtime_error("addX() for binary messages not yet supported.");
@@ -491,6 +493,8 @@ void sm4ns3::JsonParser::makeOpaqueSend(OngoingSerialization& ongoing, const std
 		Json::Value res;
 		res["msg_type"] = "opaque_send";
 		res["from_id"] = "987654321"; //TODO: Better unique ID.
+		res["format"] = format;
+		res["tech"] = tech;
 	
 		//Add the DATA section
 		res["data"] = data;

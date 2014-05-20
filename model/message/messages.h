@@ -18,6 +18,8 @@ struct OpaqueSendMessage : public sm4ns3::MessageBase {
 	std::vector<std::string> toIds; ///<The Agent(s) we are sending this message to.
 	bool broadcast; ///<If true, Sim Mobility will overwrite "toIds" with the nearest Agents (using the Aura Manager).
 	std::string data; ///<The actual message data
+	std::string format;
+	std::string tech;
 	OpaqueSendMessage(const MessageBase& base) : MessageBase(base) {}
 };
 
@@ -26,6 +28,8 @@ struct OpaqueReceiveMessage : public sm4ns3::MessageBase {
 	std::string fromId; ///<The Agent sending this message.
 	std::string toId; ///<The Agent we are sending this message to.
 	std::string data; ///<The actual message data
+	std::string format;
+	std::string tech;
 	OpaqueReceiveMessage(const MessageBase& base) : MessageBase(base) {}
 };
 

@@ -41,7 +41,7 @@ public:
 
 class Broker : public BrokerBase{
 public:
-	Broker(const std::string& simmob_host="localhost", const std::string& simmob_port="6745");
+	Broker(const std::string& simmob_host="127.0.0.1", const std::string& simmob_port="6745");
 	virtual ~Broker();
 
 	//Overriding BrokerBase
